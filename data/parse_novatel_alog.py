@@ -1,5 +1,7 @@
 #!/usr/bin/env python2.7
-import sys, os
+"""This is one way of putting *.alog data into a *.mat, if you don't like the 
+script provided..."""
+import os
 import scipy.io as sio
 
 alog_path = os.path.join(os.path.dirname(__file__), 'Novatel_Data_16_9_2013_____13_30_04.alog')
