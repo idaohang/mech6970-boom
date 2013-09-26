@@ -21,10 +21,4 @@ function out=part1fit(data,svnum,destime,type)
     out(1)=interp1(timedata(1):10:timedata(end),xspline,destime);
     out(2)=interp1(timedata(1):10:timedata(end),yspline,destime);
     out(3)=interp1(timedata(1):10:timedata(end),zspline,destime);
-    
-    if type==4
-        out(1)=wrapTo360(out(1));
-        out(2)=wrapTo360(out(2));
-        out(3)=wrapTo360(out(3));
-    end
 end
