@@ -109,8 +109,7 @@ for k = 1:length(svprn)
   
   [sv_lat,sv_lon,sv_alt] = coordutil.wgsxyz2lla(pos);  %!!! It gets stuck here b/c the inputs are dead wrong.
   % SV pos relative to user in ENU
-  sv_lat=wrapTo360(sv_lat);
-  sv_lon=wrapTo360(sv_lon);
+  [sv_lat,sv_lon]=wraplatlong(sv_lat,sv_lon);
   if abs(sv_alt)<18000000
       continue;
   end
@@ -145,7 +144,9 @@ destime=185000;
 pos_at_t=zeros(32,3);
 for k=1:32
 part1plot(output_data,k);
-pos_at_t(k,:)=part1fit(output_data,k,destime,4);
+pos=part1fit(output_data,k,destime,4);
+[lat,long]=wraplatlong(pos(1),pos(2));
+pos_at_t(k,:)=[lat,long,pos(3)];
 end
 
 figure;
