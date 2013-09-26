@@ -136,10 +136,23 @@ set(gca,'XLim',[0 360],'YLim',[-90 90], ...
     'XTick',[0 60 120 180 240 300 360], ...
     'Ytick',[-90 -60 -30 0 30 60 90]);
 hold on;
+
+destime=185000;
+pos_at_t=zeros(32,3);
 for k=1:32
 part1plot(output_data,k);
+pos_at_t(k,:)=part1fit(output_data,k,destime,4);
 end
 
+figure;
+contour(0:359,-89:90,topo,[0 0],'b')
+axis equal
+box on
+set(gca,'XLim',[0 360],'YLim',[-90 90], ...
+    'XTick',[0 60 120 180 240 300 360], ...
+    'Ytick',[-90 -60 -30 0 30 60 90]);
+hold on;
+scatter(pos_at_t(:,2),pos_at_t(:,1),40,[rand,rand,rand],'fill');
 
 
 

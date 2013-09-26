@@ -1,15 +1,30 @@
-function out=part1fit(data,svnum,destime)
+function out=part1fit(data,svnum,destime,type)
     timedata=[];
-    ecefx=[];
-    ecefy=[];
-    ecefz=[];
+    out=zeros(1,3);
+    x=[];
+    y=[];
+    z=[];
     for j=1:size(data,1)
-        if data{1,1}=svnum
+        if data{j,1}==svnum
             timedata(end+1)=data{j,2};
-            ecefx(end+1)=data{j,3}(1);
-            ecefy(end+1)=data{j,3}(2);
-            ecefz(end+1)=data{j,3}(3);
-
+            x(end+1)=data{j,type}(1);
+            y(end+1)=data{j,type}(2);
+            z(end+1)=data{j,type}(3);
         end
+    end
+
+    
+    xspline=spline(timedata,x,timedata(1):10:timedata(end));
+    yspline=spline(timedata,y,timedata(1):10:timedata(end));
+    zspline=spline(timedata,z,timedata(1):10:timedata(end));
+   
+    out(1)=interp1(timedata(1):10:timedata(end),xspline,destime);
+    out(2)=interp1(timedata(1):10:timedata(end),yspline,destime);
+    out(3)=interp1(timedata(1):10:timedata(end),zspline,destime);
+    
+    if type==4
+        out(1)=wrapTo360(out(1));
+        out(2)=wrapTo360(out(2));
+        out(3)=wrapTo360(out(3));
     end
 end
