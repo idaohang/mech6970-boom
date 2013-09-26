@@ -7,10 +7,14 @@
 %    - that's unrobust, I know, but it's late...
 %
 % _Prerequisites_
-%   - `mydate` package (fileexchange)
-%   - `goGPS` (gogps-project.org) - I did add with subfolders
-%   - `rgc_matlab` (github.com/ozymandium/rgc_matlab)
-%         - just need to add top level to path
+%   - MATLAB deps
+%     - `mydate` package (fileexchange)
+%     - `goGPS` (gogps-project.org) - I did add with subfolders
+%     - `rgc_matlab` (github.com/ozymandium/rgc_matlab)
+%           - just need to add top level to path
+%   - System deps
+%     - gzip
+%     - Python 2.7
 % 
 genutil.ccc
 
@@ -44,7 +48,7 @@ dow = weekday(datestr(dtvec))-1;
 % filename
 cddis_addr = ['pub/gps/data/daily/', yrstr, '/brdc/'];
 cddis_fname = ['brdc' sprintf('%3.3d',doy) '0.' yrstr(3:4) 'n.Z'];
-mkdir(['..' filesep 'data' filesep 'stmp']);
+mkdir(['..' filesep 'data' filesep 'tmp']);
 % the paths here probably won't work on Windows .. Meh.
 system(['python ..' filesep 'data' filesep 'download_cddis_data.py ' cddis_addr cddis_fname ' ..' filesep 'data' filesep 'tmp/']);
 cddis_fname =  cddis_fname(1:end-2); % take off the .Z

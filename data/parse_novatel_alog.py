@@ -6,7 +6,7 @@ import scipy.io as sio
 
 alog_path = os.path.join(os.path.dirname(__file__), 'Novatel_Data_16_9_2013_____13_30_04.alog')
 alog_file = open(alog_path, 'r')
-mat_path =  os.path.join(os.path.dirname(__file__), 'Novatel_Data_16_9_2013_____13_30_04.mat')
+mat_path =  os.path.join(os.path.dirname(__file__), 'Novatel_Data__pyparsed.mat')
 
 data = {'gNovatel0': {}, 'gNovatel1': {}}
 
