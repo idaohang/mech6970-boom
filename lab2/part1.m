@@ -49,9 +49,11 @@ mkdir(['..' filesep 'data' filesep 'tmp']);
 system(['python ..' filesep 'data' filesep 'download_cddis_data.py ' cddis_addr cddis_fname ' ..' filesep 'data' filesep 'tmp/']);
 cddis_fname =  cddis_fname(1:end-2); % take off the .Z
 
-
-disp(['..' filesep 'data' filesep 'tmp' filesep cddis_fname])
-[ephem_full,~] = RINEX_get_nav(['..' filesep 'data' filesep 'tmp' filesep cddis_fname]);
+curd=pwd();
+parent=cd(cd('..'));
+cd(curd);
+disp([parent filesep 'data' filesep 'tmp' filesep cddis_fname '.Z'])
+[ephem_full,~] = RINEX_get_nav([parent filesep 'data' filesep 'tmp' filesep cddis_fname '.Z']);
 % At this point you now have a 33x416 matrix of ephemeris datas. yippee.
 
 %% JPL Precise Ephemeris
