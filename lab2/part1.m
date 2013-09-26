@@ -82,7 +82,7 @@ for k = 1:length(svprn)
   svpos(:,prn,prn_data_cnt(prn)) = pos;
   
   % find spherical coordinates for each satellite at each epoch
-  [sv_lat,sv_lon,sv_alt] = coordutil.wgsxyz2lla(pos);  
+  [sv_lat,sv_lon,sv_alt] = coordutil.wgsxyz2lla(pos);  %!!! It gets stuck here b/c the inputs are dead wrong.
   % SV pos relative to user in ENU
   dp_enu = coordutil.wgslla2enu(sv_lat,sv_lon,sv_alt, user_lla(1),user_lla(2),user_lla(3));
   [a,e,r] = cart2sph(dp_enu(1),dp_enu(2),dp_enu(3)); 
