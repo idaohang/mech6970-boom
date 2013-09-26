@@ -44,11 +44,11 @@ dow = weekday(datestr(dtvec))-1;
 % filename
 cddis_addr = ['pub/gps/data/daily/', yrstr, '/brdc/'];
 cddis_fname = ['brdc' sprintf('%3.3d',doy) '0.' yrstr(3:4) 'n.Z'];
-mkdir('../data/tmp');
+mkdir(['..' filesep 'data' filesep 'stmp']);
 % the paths here probably won't work on Windows .. Meh.
-system(['python ../data/download_cddis_data.py ' cddis_addr cddis_fname ' ../data/tmp/']);
+system(['python ..' filesep 'data' filesep 'download_cddis_data.py ' cddis_addr cddis_fname ' ..' filesep 'data' filesep 'tmp/']);
 cddis_fname =  cddis_fname(1:end-2); % take off the .Z
-[ephem_full,~] = RINEX_get_nav(['../data/tmp/' cddis_fname]);
+[ephem_full,~] = RINEX_get_nav(['..' filesep 'data' filesep 'tmp' filesep cddis_fname]);
 % At this point you now have a 33x416 matrix of ephemeris datas. yippee.
 
 %% JPL Precise Ephemeris
