@@ -53,6 +53,12 @@ curd=pwd();
 parent=cd(cd('..'));
 cd(curd);
 disp([parent filesep 'data' filesep 'tmp' filesep cddis_fname '.Z'])
+
+
+%%%% TO GET TO RUN:
+%  in rinex_get_nax, line 52, change to:
+%             fid = fopen(file_nav,'r+');
+%%%%%%%
 [ephem_full,~] = RINEX_get_nav([parent filesep 'data' filesep 'tmp' filesep cddis_fname '.Z']);
 % At this point you now have a 33x416 matrix of ephemeris datas. yippee.
 
@@ -78,28 +84,61 @@ t_transit_est = range_est/c;
 
 % !? It may end up having different numbers of epochs for some SV's than
 % others??
+
+%one row for each peice of data
+%columns: svnum,transmit time,ECEF,LLA,ENU
+output_data=cell(length(svprn),10);
+count=1;
 for k = 1:length(svprn)
   prn = svprn(k);
   
   % calculate ECEF position for each sv at each epoch
   t_tx = t_oc(k);
-  [pos, clk_corr] = gps.calc_sv_pos(ephem, t_tx, t_transit_est);
+  
+  [pos, clk_corr] = gps.calc_sv_pos(ephem(:,k), t_tx, t_transit_est);
   svpos(:,prn,prn_data_cnt(prn)) = pos;
   
   % find spherical coordinates for each satellite at each epoch
+  %fprintf('sv positions, ECEF: %20.10f\t%20.10f\t%20.10f\n',pos);
+  %fprintf('transit time: %20.15f\n', t_transit_est);
+  %fprintf('transmit time: %20.15f\n', t_tx);
+  
   [sv_lat,sv_lon,sv_alt] = coordutil.wgsxyz2lla(pos);  %!!! It gets stuck here b/c the inputs are dead wrong.
   % SV pos relative to user in ENU
+  sv_lat=wrapTo360(sv_lat);
+  sv_lon=wrapTo360(sv_lon);
+  if abs(sv_alt)<18000000
+      continue;
+  end
+  fprintf('sv positions, LLA: %20.10f\t%20.10f\t%20.10f\n',sv_lat,sv_lon,sv_alt);
+  
   dp_enu = coordutil.wgslla2enu(sv_lat,sv_lon,sv_alt, user_lla(1),user_lla(2),user_lla(3));
   [a,e,r] = cart2sph(dp_enu(1),dp_enu(2),dp_enu(3)); 
   svpos_ae(:,prn,prn_data_cnt(prn)) = [a;e];
   
   prn_data_cnt(prn) = prn_data_cnt(prn)+1;
+  output_data{count,1}=svprn(k);
+  output_data{count,2}=t_tx;
+  output_data{count,3}=pos;
+  output_data{count,4}=[sv_lat,sv_lon,sv_alt];
+  output_data{count,5}=dp_enu;
+  count=count+1;
+  %fprintf('\n')
 end
 
 
-
-
-
+load('topo.mat','topo','topomap1');
+figure;
+contour(0:359,-89:90,topo,[0 0],'b')
+axis equal
+box on
+set(gca,'XLim',[0 360],'YLim',[-90 90], ...
+    'XTick',[0 60 120 180 240 300 360], ...
+    'Ytick',[-90 -60 -30 0 30 60 90]);
+hold on;
+for k=1:32
+part1plot(output_data,k);
+end
 
 
 
