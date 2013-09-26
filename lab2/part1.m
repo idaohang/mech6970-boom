@@ -78,7 +78,7 @@ disp([parent filesep 'data' filesep 'tmp' filesep cddis_fname '.Z'])
 % assume that week # does not change during this data
 gps.constants
 
-[ephem,svprn,t_oc] = gps.ephem_gogps2gavlab(ephem_full); % rearrange the rows
+[ephem,svprn,t_oe] = gps.ephem_gogps2gavlab(ephem_full); % rearrange the rows
 svpos = zeros(3,32,length(svprn)/32);
 svpos_ae = svpos(1:2,:,:); % azimuth, elevation
 prn_data_cnt = ones(1,32); % which epoch for each SV we are on
@@ -97,7 +97,7 @@ for k = 1:length(svprn)
   prn = svprn(k);
   
   % calculate ECEF position for each sv at each epoch
-  t_tx = t_oc(k);
+  t_tx = t_oe(k);
   
   [pos, clk_corr] = gps.calc_sv_pos(ephem(:,k), t_tx, t_transit_est);
   svpos(:,prn,prn_data_cnt(prn)) = pos;

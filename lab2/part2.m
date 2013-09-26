@@ -26,17 +26,20 @@ ephem_novatel([1,2,4,8,9,12,17,24,28,32],:) = [...
 ];
 % convert columns to the format expected by calc_sv_pos
 [ephem, prns, tow] = gps.ephem_novatel2gavlab(ephem_novatel);
-
+numsat = length(prns);
 %% Skyview
 % 
+
 % transit time estimation
 range_est = 20e6;
 t_transit_est = range_est/c;
 
 % position estimation
-svpos = zeros(3,length(prns));
+svpos = zeros(3,numsat);
+svpos_ae = zeros(2,numsat);
 for k = 1:length(prns)
   prn = prns(k);
   [pos,clkcorr] = gps.calc_sv_pos(ephem(k,:), tow(k), t_transit_est);
   svpos(:,k) = pos;
+  
 end
