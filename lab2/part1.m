@@ -141,12 +141,14 @@ set(gca,'XLim',[0 360],'YLim',[-90 90], ...
 hold on;
 
 destime=185000;
+fprintf('\n\n\n\nSatellite Positons at GPS time: %20.10f\n',destime)
 pos_at_t=zeros(32,3);
 for k=1:32
 part1plot(output_data,k);
 pos=part1fit(output_data,k,destime,4);
 [lat,long]=wraplatlong(pos(1),pos(2));
 pos_at_t(k,:)=[lat,long,pos(3)];
+fprintf('SV: %4.0f\t Lat: %20.10f\tLong:%20.10f\tAlt: %20.10f\n',k,lat,long,pos(3));
 end
 
 figure;
@@ -158,6 +160,7 @@ set(gca,'XLim',[0 360],'YLim',[-90 90], ...
     'Ytick',[-90 -60 -30 0 30 60 90]);
 hold on;
 scatter(pos_at_t(:,2),pos_at_t(:,1),40,[rand,rand,rand],'fill');
+
 
 
 
