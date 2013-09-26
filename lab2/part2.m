@@ -42,4 +42,16 @@ for k = 1:length(prns)
   [pos,clkcorr] = gps.calc_sv_pos(ephem(k,:), tow(k), t_transit_est);
   svpos(:,k) = pos;
   
+  [sv_lat,sv_lon,sv_alt] = coordutil.wgsxyz2lla(pos);
+  % SV pos relative to user in ENU
+  [sv_lat,sv_lon]=wraplatlong(sv_lat,sv_lon);
+  if abs(sv_alt)<18000000
+      continue;
+  end
+  fprintf('sv positions, LLA: %20.10f\t%20.10f\t%20.10f\n',sv_lat,sv_lon,sv_alt);
+  
+  dp_enu = coordutil.wgslla2enu(sv_lat,sv_lon,sv_alt, user_lla(1),user_lla(2),user_lla(3));
+  [a,e,r] = cart2sph(dp_enu(1),dp_enu(2),dp_enu(3)); 
+  svpos_ae(:,prn,prn_data_cnt(prn)) = [a;e];
+
 end
