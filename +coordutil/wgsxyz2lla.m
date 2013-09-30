@@ -5,11 +5,15 @@
 %
 % Written by Andrew Barrows
 
-function [wlat, wlon, walt] = wgsxyz2lla(xyz)
+function [wlat, wlon, walt] = wgsxyz2lla(xyz,nit)
 
         %  This dual-variable iteration seems to be 7 or 8 times faster than
 	%  a one-variable (in latitude only) iteration.  AKB 7/17/95 
-
+  
+  if nargin == 1
+    nit = Inf;
+  end
+  
 	A_EARTH = 6378137;
 	flattening = 1/298.257223563;
 	NAV_E2 = (2-flattening)*flattening; % also e^2
@@ -36,7 +40,8 @@ function [wlat, wlon, walt] = wgsxyz2lla(xyz)
 		%	the residuals on rho and z progressively smaller.  Loop
 		%	is implemented as a 'while' instead of a 'do' to simplify
 		%	porting to MATLAB
-
+    
+    k = 1;
 		while ((abs(rhoerror) > 1e-6) | (abs(zerror) > 1e-6)) 
 			slat = sin(templat);
 			clat = cos(templat);
@@ -63,6 +68,11 @@ function [wlat, wlon, walt] = wgsxyz2lla(xyz)
 			invdet = 1.0/(aa*dd - bb*cc);
 			templat = templat - invdet*(+dd*rhoerror -bb*zerror);
 			tempalt = tempalt - invdet*(-cc*rhoerror +aa*zerror);
+      
+      if k > nit
+        break;
+      end
+      k = k+1;
 		end
 
 		wlat = templat*rad2deg;
