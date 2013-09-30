@@ -181,13 +181,12 @@ set(gca,'XLim',[0 360],'YLim',[-90 90], ...
     'Ytick',[-90 -60 -30 0 30 60 90]);
 hold on;
 scatter(motion_of_sv(:,2),motion_of_sv(:,1),20,'r','fill');
-title('Satellite Positions')
+title('Satellite 20 Motion')
 
 
 
 
 figure;
-hold on;
 plotdata=zeros(32,3);
 for j=1:32
     plotdata(j,:)=output_data{j,3};
