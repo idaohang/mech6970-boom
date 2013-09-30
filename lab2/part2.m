@@ -5,6 +5,7 @@ gps.constants
 
 % solar house field
 user_lla = [dms2dd(32,35,26.16), dms2dd(85,29,21.21), 200];
+user_ecef = coordutil.wgslla2xyz(user_lla(1),user_lla(2),user_lla(3));
 
 %% Load data
 % 
@@ -72,7 +73,7 @@ for k = 1:32
   
   azi = svpos_ae(1,k);
   ele = svpos_ae(2,k);
-  polar(rad2deg(azi),rad2deg(ele), 'b')
+%   polar(rad2deg(azi),rad2deg(ele), 'b')
   
 end
 
