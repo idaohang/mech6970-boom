@@ -170,6 +170,8 @@ for j=1:3600
     pos=part1fit(output_data,25,destime-1800+j,4);
     motion_of_sv(j,:)=pos(1:3);
 end
+
+
 figure;
 contour(0:359,-89:90,topo,[0 0],'b')
 axis equal
@@ -190,7 +192,7 @@ plotdata=zeros(32,3);
 for j=1:32
     plotdata(j,:)=output_data{j,3};
 end
-skyplot(plotdata,1:32,output_data{1,3});
+skyplot(plotdata,1:32,coordutil.wgslla2xyz(32.605580,85.486546,180.30));
 
 
 
