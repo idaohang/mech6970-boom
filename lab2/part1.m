@@ -107,7 +107,7 @@ for k = 1:length(svprn)
   %fprintf('transit time: %20.15f\n', t_transit_est);
   %fprintf('transmit time: %20.15f\n', t_tx);
   
-  [sv_lat,sv_lon,sv_alt] = coordutil.wgsxyz2lla(pos);  %!!! It gets stuck here b/c the inputs are dead wrong.
+  [sv_lat,sv_lon,sv_alt] = coordutil.wgsxyz2lla(pos, 1000);  %!!! It gets stuck here b/c the inputs are dead wrong.
   % SV pos relative to user in ENU
   [sv_lat,sv_lon]=wraplatlong(sv_lat,sv_lon);
   if abs(sv_alt)<18000000
