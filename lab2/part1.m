@@ -113,7 +113,7 @@ for k = 1:length(svprn)
   if abs(sv_alt)<18000000
       continue;
   end
-  fprintf('sv positions, LLA: %20.10f\t%20.10f\t%20.10f\n',sv_lat,sv_lon,sv_alt);
+%   fprintf('sv positions, LLA: %20.10f\t%20.10f\t%20.10f\n',sv_lat,sv_lon,sv_alt);
   
   dp_enu = coordutil.wgslla2enu(sv_lat,sv_lon,sv_alt, user_lla(1),user_lla(2),user_lla(3));
   [a,e,r] = cart2sph(dp_enu(1),dp_enu(2),dp_enu(3)); 
@@ -141,7 +141,7 @@ set(gca,'XLim',[0 360],'YLim',[-90 90], ...
 hold on;
 
 destime=173734.00;
-fprintf('\n\n\n\nSatellite Positons at GPS time: %20.10f\n',destime)
+% fprintf('\n\n\n\nSatellite Positons at GPS time: %20.10f\n',destime)
 pos_at_t=zeros(32,3);
 
 for k=1:32
@@ -149,7 +149,7 @@ for k=1:32
     pos=part1fit(output_data,k,destime,4);
         [lat,long]=wraplatlong(pos(1),pos(2));
         pos_at_t(k,:)=[lat,long,pos(3)];
-        fprintf('SV: %4.0f\t Lat: %20.10f\tLong:%20.10f\tAlt: %20.10f\n',k,lat,long,pos(3));
+%         fprintf('SV: %4.0f\t Lat: %20.10f\tLong:%20.10f\tAlt: %20.10f\n',k,lat,long,pos(3));
 end
 
 figure;
@@ -172,27 +172,27 @@ for j=1:3600
 end
 
 
-figure;
-contour(0:359,-89:90,topo,[0 0],'b')
-axis equal
-box on
-set(gca,'XLim',[0 360],'YLim',[-90 90], ...
-    'XTick',[0 60 120 180 240 300 360], ...
-    'Ytick',[-90 -60 -30 0 30 60 90]);
-hold on;
-scatter(motion_of_sv(:,2),motion_of_sv(:,1),20,'r','fill');
-title('Satellite 20 Motion')
+% figure;
+% contour(0:359,-89:90,topo,[0 0],'b')
+% axis equal
+% box on
+% set(gca,'XLim',[0 360],'YLim',[-90 90], ...
+%     'XTick',[0 60 120 180 240 300 360], ...
+%     'Ytick',[-90 -60 -30 0 30 60 90]);
+% hold on;
+% scatter(motion_of_sv(:,2),motion_of_sv(:,1),20,'r','fill');
+% title('Satellite 20 Motion')
 
 
 
-
-figure;
-plotdata=zeros(32,3);
-for j=1:32
-    plotdata(j,:)=output_data{j,3};
-end
-skyplot(plotdata,1:32,coordutil.wgslla2xyz(32.605580,85.486546,180.30));
-
+% 
+% figure;
+% plotdata=zeros(32,3);
+% for j=1:32
+%     plotdata(j,:)=output_data{j,3};
+% end
+% skyplot(plotdata,1:32,coordutil.wgslla2xyz(32.605580,85.486546,180.30));
+% 
 
 
 

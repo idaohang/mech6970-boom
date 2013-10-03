@@ -9,6 +9,8 @@ function [satPositions,satClkCorr]=calc_sv_pos(ephem_data,transmitTime,transitTi
 %           n=1 is supported)
 %     transmitTime:
 %     transitTime:
+%     
+%     Assumes input A (semimajor axis) rather than sqrt(A)
 % 
 %   OUTPUTS:
 % 
@@ -35,7 +37,7 @@ C_is=ephem_data(11);
 Delta_n=ephem_data(12);
 M_0=ephem_data(13);
 e=ephem_data(14);
-sqrt_A=ephem_data(15);
+sqrt_A=sqrt(ephem_data(15));
 t_oe=ephem_data(16);
 Omega_0=ephem_data(17);
 i_0=ephem_data(18);
