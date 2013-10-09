@@ -1,5 +1,6 @@
 function varargout = solve_rotate3(R)
-%% SOLVE_ROTATE3 solves a 3D rotation matrix for its 3 constituent Euler angles
+
+% SOLVE_ROTATE3 solves a 3D rotation matrix for its 3 constituent Euler angles
 % 
 % https://truesculpt.googlecode.com/hg-history/38000e9dfece971460473d5788c235fbbe82f31b/Doc/rotation_matrix_to_euler.pdf
 % 
@@ -21,6 +22,7 @@ function varargout = solve_rotate3(R)
 %   x,y,z: radian angles
 %
 %
+
 if all(R(3,1)~=[-1,1])
   y1 = -asin(R(3,1));
   x1 = atan2( R(3,2)/cos(y1) , R(3,3)/cos(y1) );

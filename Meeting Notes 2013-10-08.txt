@@ -1,0 +1,48 @@
+Meeting Notes 2013-10-08
+=========================
+
+Attendance:
+William McGinnis
+Robert Cofield
+
+
+11:20 am
+General Guidelines
+
+  - All code for each project will be kept in project specific folders
+    - (i.e., lab2 code and all it's dependencies will be kept in the lab2 folder)
+    - this is the shitty way. 
+    - if someone is missing a dependency, alert the group.
+      - It will be added to the folder. This will have to be done for each assignment.
+
+  - Data files used need to be the same.
+    - We will use the file parsed by read_async_log.m (`Novatel_Data.mat`)
+    - This will stay in the `data/` directory so that it doesn't get changed.
+    - Online ephemeris
+      - code exists to download it, but we want to go ahead and have a single 
+        version of each ephem file that gets version controlled. 
+      - this will stay in the `data/` directory
+
+  - Platform Independence
+    - `filesep` command should be used for all directory strings
+    - Under no circumstances should *.exe's be called
+
+  - Don't be an asshole.
+  - Write good code.
+  - Use branches. Merge with the afflicted party present. 
+      -If you don't know how to use git, learn.
+
+
+Lab 3
+  
+  We will aim to complete the assignment by the date specified in the assignment,
+  even though it will probably be moved.
+
+  - Work Load Distribution
+    - Everyone will work on Part I for the time being. We will reconvene to discuss
+    working on Part II
+    - Part I should be done by Mon 2013-10-14
+      a) Will
+      b) Robert
+      c) Grant + Ace
+      d) Fuck it. 
