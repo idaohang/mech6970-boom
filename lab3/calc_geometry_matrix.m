@@ -24,7 +24,7 @@ function G = calc_geometry_matrix(user_pos, svpos)
 
 sz = size(svpos);
 m = sz(1);
-if (size(user_pos)~=[1 3]) || (sz(2)~=3), error('input dimensions'); end
+if (any(size(user_pos)~=[1 3])) || (sz(2)~=3), error('input dimensions'); end
 
 G = zeros(m,3);
 for k = 1:m

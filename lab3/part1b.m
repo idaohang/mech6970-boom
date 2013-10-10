@@ -73,13 +73,11 @@ M = 100;
 c = 299792458;
 transit_time_est = 20e6/c;
 
-% ECEF estimate of the user position for unit vectors (using Google Earth)
+% LLA estimate of the user position for unit vectors (using Google Earth)
 lla_user_est = [dms2deg([32,35,26.1]), -dms2deg([85,29,20.61]), 205]; % lat lon alt
-user_pos_est = 
 
 
 %% Calculate SV Positions from Ephemeris
-
 
 % ephem_mat: each column corresponds to an sv
 ephem_mat_novatel = [...
@@ -116,12 +114,13 @@ end
 
 clear ephem_mat_novatel i k ephem_mat
 
-%% Single Frequency Carrier Smoothing
+%% Carrier Smoothing
+% Accumulated Doppler (ADR) is the negative of the Carrier Phase
 % 
 
 % Carrier smoothed range estimates
-r1 = zeros(nsv,ndat);
-r1(:,1) = psrL1(:,1); % start by copying
+psr_cs1 = zeros(nsv,ndat);
+psr_cs1(:,1) = psrL1(:,1); % start by copying
 
 for k = 2:ndat
   for i = 1:nsv
@@ -132,25 +131,85 @@ for k = 2:ndat
       if ~psrL1(i,k) % still don't have dat
         continue
       else % sv just came into view -> copy to begin (this happens to SV 12)
-        r1(i,k) = psrL1(i,k);
+        psr_cs1(i,k) = psrL1(i,k);
         continue
       end
     end
     
-    r1(i,k) = psrL1(i,k)/M + (M-1)/M*( r1(i,k-1) + adrL1(i,k) - adrL1(i,k-1));
+    % Single Frequency
+    psr_cs1(i,k) = psrL1(i,k)/M + (M-1)/M*( psr_cs1(i,k-1) - adrL1(i,k) + adrL1(i,k-1));
 
   end
 end
 
-% Least Squares Estimation
+clear i
+
+%% Least Squares Position Estimation
+
+% % % % Initial Estimates to Use
+% Linearize the model by estimating deviation rough estimate of user position.
+% Use the same one for each epoch, since the data set is known to be static.
+x0 = coordutil.wgslla2xyz(lla_user_est(1), lla_user_est(2), lla_user_est(3))';
+% Estimate of the clock bias
+b0 = 1e-6; % seconds
+
+% % % % differences between intial guesses and solutions, which will be
+% % % % estimated
+% estimate for difference between linearization point and true position
+dx = zeros(3,ndat);
+% estimate for the difference between linearization point and true clock bias
+db = zeros(1,ndat);
+
+% % % % Solution output by LS Estimator
+% estimate for user position: sum initial guess and estimated difference
+x_est = zeros(3,ndat);
+% estimate for clock bias: sum initial guess and estimated difference
+b_est = zeros(1,ndat);
+
+% % % % Inputs to estimator
+% initial PSR estimate to use for linearization
+psr0 = zeros(nsv,ndat);
+% corrected PSR (see pg 202, Eq 6.3) obtained by accounting for satellite clock
+% offset
+psrC = zeros(nsv,ndat);
+% difference between corrected and initial pseudoranges calculated the LSE. This
+% is the actual LSE input
+dpsr = zeros(nsv,ndat);
+
+% % Estimator Loop
 for k = 1:ndat
-%   G = calc_geometry_matrix(user_
+  
+  % get data that will be used for this time step
+  psr_ = psr_cs1(:,k);
+  svpos_ = svpos(:,:,k)';
+  
+  % eliminate sv's which aren't currently in view
+  [idx,~] = find(psr_);
+  %psr_ = psr_(idx);
+  %svpos_ = svpos_(idx,:);
+  
+  % psr inputs
+  psr0(idx,k) = (norm( svpos_(idx,:)-repmat(x0,length(idx),1) ,2) + b0)'; 
+  psrC(idx,k) = (psr_(idx) - sv_clkcorr(idx,k))';
+  dpsr(idx,k) = psrC(idx,k) - psr0(idx,k);
+    
+  % Find geometry matrix (design matrix)
+  G = calc_geometry_matrix(x0, svpos_(idx,:));
+  % add column of 1's so that clock bias may be estimated as well
+  G = [G ones(length(G),1)];
+      
+  est = inv(G'*G)*G'*dpsr(idx,k);
+  % store outputs
+  dx(:,k) = est(1:3);
+  db(k) = est(4);
+  
+  % compute solution
+  x_est(:,k) = x0' + dx(:,k);
+  b_est(k) = b0 + db(k);
+  
+  
+  
 end
-
-
-
-%% Dual Frequency Carrier Smoothing
-% 
 
 
 
