@@ -7,6 +7,8 @@
 %   had to copy some ephemeris data from Receiver 1 over to Receiver 0 due to
 %   parsing errors.
 % 
+% Add the folder misc/geodetic to your path
+% 
 
 %% Data Input
 clear all; close all; clc
@@ -72,7 +74,7 @@ c = 299792458;
 transit_time_est = 20e6/c;
 
 % ECEF estimate of the user position for unit vectors (using Google Earth)
-lla_user_est = [dms2degrees(32,35,26.1), -dms2degrees(85,29,20.61), 205]; % lat lon alt
+lla_user_est = [dms2deg([32,35,26.1]), -dms2deg([85,29,20.61]), 205]; % lat lon alt
 user_pos_est = 
 
 
@@ -141,6 +143,9 @@ for k = 2:ndat
 end
 
 % Least Squares Estimation
+for k = 1:ndat
+%   G = calc_geometry_matrix(user_
+end
 
 
 

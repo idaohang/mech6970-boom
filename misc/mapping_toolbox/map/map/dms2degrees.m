@@ -48,7 +48,6 @@ function angleInDegrees = dms2degrees(dms)
 %     See also: DEGREES2DMS, DEGTORAD, DM2DEGREES, STR2ANGLE.
 
 % Copyright 2006-2009 The MathWorks, Inc.
-% $Revision: 1.1.6.2 $  $Date: 2009/03/30 23:38:23 $
 
 validateInput(dms)
 sgn = 1 - 2* any(dms < 0, 2);
