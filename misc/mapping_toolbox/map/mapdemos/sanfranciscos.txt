@@ -1,0 +1,51 @@
+The binary file
+
+   sanfranciscos.dem.gz
+
+is a GNU-zipped file of the ASCII file sanfranciscos.dem. The ASCII file
+
+   sanfranciscos.dem
+
+contains a United States Geological Survey (USGS) 7.5-minute Digital
+Elevation Model (DEM) for the SAN FRANCISCO SOUTH, CA BIG BASIN DEM
+quandrangle.  This data set covers an area of roughly 2,800-by-2,200
+meters in the San Francisco Bay area of California, USA, with elevations
+posted every 30 meters.  The data are referenced to Universal Transverse
+Mercator (UTM), Zone 10, in the North American Datum of 1927.  Horizonal
+units are meters and vertical units are feet. 
+
+Source
+------
+The San Francisco DEM was obtained from the USGS from the following URL:
+http://bard.wr.usgs.gov/bard/dem/dems24k/sanfrancisco/sanfranciscos.dem
+
+Product Description
+-------------------
+The USGS describes the DEM product as the following 
+(obtained from the URL description at
+http://edcwww.cr.usgs.gov/products/elevation/dem.html):
+
+"Digital Elevation Models (DEMs) consist of a raster grid of regularly
+spaced elevation values that have been primarily derived from the USGS
+topographic map series. 
+
+DEMs are available in Native format, written as ANSI-standard ASCII
+characters in fixed-block format. 
+
+The USGS produces five types of elevation data:
+
+1. 7.5-Minute DEMs correspond to the USGS 1:24,000- and 1:25,000-scale
+topographic quadrangle maps, and are available for all of the U.S. and
+its territories. They are cast to the Universal Transverse Mercator (UTM) 
+projection system and are referenced to either the North American Datum
+(NAD) of 1927 (NAD27) or the NAD of 1983 (NAD83). Most files will have a
+grid spacing of 30 meters, but 10-meter grids are also available for some
+locations. The average file size of a 30-meter DEM is 1.1 megabytes and
+9.9 megabytes for a 10-meter DEM. They are available in Native and Spatial 
+Data Transfer Standard (SDTS) format. Native format is distributed on CD-ROM, 
+DVD, and File Transfer Protocol (FTP). SDTS is distributed via FTP download."
+
+----------------------------------
+Copyright 2005 The MathWorks, Inc.
+$Revision: 1.1.6.1 $  $Date: 2005/11/15 01:06:16 $
+

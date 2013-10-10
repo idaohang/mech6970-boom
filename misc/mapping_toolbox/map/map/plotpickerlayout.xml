@@ -1,0 +1,136 @@
+<plotpicker>
+    
+<category name="Mapping Toolbox: Projected X-Y Plots">
+    <plotaction ID="mapshow_point" description="Plot data in an ordinary axes using points" function="mapshow"
+                rule="Select 2 vectors of equal length and where any NaNs occur in matching positions. This Plot Action is disabled if the current axes is a map axes"
+                largeicon="(matlabroot)/toolbox/map/icons/mapshow_point.png"
+                visibility = "@(args) mappickerfunc('defaultshow','mapshow_point',[],args)"
+                labelfcn = "@(varNames,args) mappickerfunc('defaultlabel','mapshow_point',varNames)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','mapshow_point',varNames,args)">
+    </plotaction>
+    
+    <plotaction ID="mapshow_line" description="Plot data in an ordinary axes using lines" function="mapshow"
+                rule="Select 2 vectors of equal length and where any NaNs occur in matching positions.. This Plot Action is disabled if the current axes is a map axes"
+                largeicon="(matlabroot)/toolbox/map/icons/mapshow_line.png"
+                visibility = "@(args) mappickerfunc('defaultshow','mapshow_line',[],args)"
+                labelfcn = "@(varNames,args) mappickerfunc('defaultlabel','mapshow_line',varNames)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','mapshow_line',varNames,args)">
+    </plotaction>
+    
+    <plotaction ID="mapshow_poly" description="Plot data in an ordinary axes using polygons" function="mapshow"
+                rule="Select 2 vectors of equal length and where any NaNs occur in matching positions.. This Plot Action is disabled if the current axes is a map axes"
+                largeicon="(matlabroot)/toolbox/map/icons/mapshow_poly.png"
+                visibility = "@(args) mappickerfunc('defaultshow','mapshow_poly',[],args)"
+                labelfcn = "@(varNames,args) mappickerfunc('defaultlabel','mapshow_poly',varNames)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','mapshow_poly',varNames,args)">
+    </plotaction>
+    
+    <plotaction ID="mapshow_S" description="Plot a mapstruct array in an ordinary axes" function="mapshow"
+                rule="Select a mapstruct using the X,Y fieldnames and not the Lat, Lon fieldnames . This Plot Action is disabled when the current axes is a map axes "
+                largeicon="(matlabroot)/toolbox/map/icons/mapshow_S.png"
+                visibility = "@(args) mappickerfunc('defaultshow','mapshow_S',[],args)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','mapshow_S',varNames,args)">
+    </plotaction>
+    
+    <plotaction ID="mapshow_Symbolspec" description="Plot a mapstruct array in an ordinary axes using custom symbolization rules" function="mapshow"
+                rule="Select a mapstruct using the X,Y fieldnames and not the Lat, Lon fieldnames . This Plot Action is disabled when the current axes is a map axes "
+                largeicon="(matlabroot)/toolbox/map/icons/mapshow_Symbolspec.png"
+                visibility = "@(args) mappickerfunc('defaultshow','mapshow_Symbolspec',[],args)"
+                labelfcn = "@(varNames,args) mappickerfunc('defaultlabel','mapshow_Symbolspec',varNames,args)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','mapshow_Symbolspec',varNames,args)">
+    </plotaction>
+    
+    <plotaction ID="mapshow_texturemap" description="Plot a 2D texure map without projection" function="mapshow"
+                rule="Select a matrix and a 1-by-3 vector or a 3-by-2 matrix. This Plot Action is disabled when the current axes is a map axes"
+                largeicon="(matlabroot)/toolbox/map/icons/mapshow_texturemap.png"
+                visibility = "@(args) mappickerfunc('defaultshow','mapshow_texturemap',[],args)"
+                labelfcn = "@(varNames,args) mappickerfunc('defaultlabel','mapshow_texturemap',varNames)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','mapshow_texturemap',varNames,args)">
+    </plotaction>
+    
+    <plotaction ID="mapshow_surface" description="Plot a 3D surface without projection" function="mapshow"
+                rule="Select a matrix and a 1-by-3 vector or a 3-by-2 matrix. Alternatively select 2 double vectors and a Z double matrix of commensurate size. This Plot Action is disabled when the current axes is a map axes"
+                largeicon="(matlabroot)/toolbox/map/icons/mapshow_surface.png"
+                visibility = "@(args) mappickerfunc('defaultshow','mapshow_surface',[],args)"
+                labelfcn = "@(varNames,args) mappickerfunc('defaultlabel','mapshow_surface',varNames)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','mapshow_surface',varNames,args)">
+    </plotaction>
+    
+    <plotaction ID="mapshow_image" description="Plot as geolocated image as a texturemap" function="mapshow"
+                rule="Select either 2 or 3 variables: For 2 variables, the first must be either a double matrix or a 3-d unit8 array with the size of the 3rd dimension of length 3, and the second a 1-by-3 or a 3-by-2 array. For 3 variables, the first must be an M-by-N double matrix, the second a 3 column matrix, and the third a 1-by-3 or a 3-by-2 array. This Plot Action is disabled when the current axes is a map axes"
+                largeicon="(matlabroot)/toolbox/map/icons/mapshow_image.png"
+                visibility = "@(args) mappickerfunc('defaultshow','mapshow_image',[],args)"
+                labelfcn = "@(varNames,args) mappickerfunc('defaultlabel','mapshow_image',varNames)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','mapshow_image',varNames,args)">
+    </plotaction>
+    
+    </category>
+    
+<category name="Mapping Toolbox: Geographic Data Plots">
+    <plotaction ID="geoshow_point" description="Plot in a map axes as points" function="geoshow"
+                rule="Select 2 vectors of equal length and where any NaNs occur in matching positions. This Plot Action is disabled if the current axes not empty and not a map axes"
+                largeicon="(matlabroot)/toolbox/map/icons/geoshow_point.png"
+                visibility = "@(args) mappickerfunc('defaultshow','geoshow_point',[],args)"
+                labelfcn = "@(varNames,args) mappickerfunc('defaultlabel','geoshow_point',varNames)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','geoshow_point',varNames,args)">
+    </plotaction>
+    
+    <plotaction ID="geoshow_line" description="Plot in a map axes as lines" function="geoshow"
+                rule="Select 2 vectors of equal length and where any NaNs occur in matching positions. This Plot Action is disabled if the current axes not empty and not a map axes"
+                largeicon="(matlabroot)/toolbox/map/icons/geoshow_line.png"
+                visibility = "@(args) mappickerfunc('defaultshow','geoshow_line',[],args)"
+                labelfcn = "@(varNames,args) mappickerfunc('defaultlabel','geoshow_line',varNames)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','geoshow_line',varNames,args)">
+    </plotaction>
+    
+    <plotaction ID="geoshow_poly" description="Plot in a map axes as polygons" function="geoshow"
+                rule="Select 2 vectors of equal length and where any NaNs occur in matching positions. This Plot Action is disabled if the current axes not empty and not a map axes"
+                largeicon="(matlabroot)/toolbox/map/icons/geoshow_poly.png"
+                visibility = "@(args) mappickerfunc('defaultshow','geoshow_poly',[],args)"
+                labelfcn = "@(varNames,args) mappickerfunc('defaultlabel','geoshow_poly',varNames)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','geoshow_poly',varNames,args)">
+    </plotaction>
+    
+    <plotaction ID="geoshow_S" description="Plot a geostruct array" function="geoshow"
+                rule="Select a geostruct using the Lat,Lon fieldnames and not the X,Y fieldnames. This Plot Action is disabled if the current axes not empty and not a map axes"
+                largeicon="(matlabroot)/toolbox/map/icons/geoshow_S.png"
+                visibility = "@(args) mappickerfunc('defaultshow','geoshow_S',[],args)"
+                labelfcn = "@(varNames,args) mappickerfunc('defaultlabel','geoshow_s',varNames)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','geoshow_S',varNames,args)">
+    </plotaction>
+    
+    <plotaction ID="geoshow_symbolspec" description="Plot using custom symbolization rules" function="geoshow"
+                rule="Select a geostruct using the Lat,Lon and ShapeType fieldnames not the X,Y fieldnames and a symbolization struct returned from makesymbolspec. This Plot Action is disabled if the current axes not empty and not a map axes"
+                largeicon="(matlabroot)/toolbox/map/icons/geoshow_symspec.png"
+                visibility = "@(args) mappickerfunc('defaultshow','geoshow_symbolspec',[],args)"
+                labelfcn = "@(varNames,args) mappickerfunc('defaultlabel','geoshow_symbolspec',varNames,args)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','geoshow_symbolspec',varNames,args)">
+    </plotaction>
+    
+    <plotaction ID="geoshow_texture" description="Plot a 2D texure map with projection" function="geoshow"
+                rule="Select a matrix and a 1-by-3 vector or a 3-by-2 matrix. This Plot Action is disabled if the current axes not empty and not a map axes."
+                largeicon="(matlabroot)/toolbox/map/icons/geoshow_texture.png"
+                visibility = "@(args) mappickerfunc('defaultshow','geoshow_texture',[],args)"
+                labelfcn = "@(varNames,args) mappickerfunc('defaultlabel','geoshow_texture',varNames)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','geoshow_texture',varNames,args)">
+    </plotaction>
+    
+    <plotaction ID="geoshow_surface" description="Plot a 3D surface with projection" function="geoshow"
+                rule="Select a matrix and a 1-by-3 vector or a 3-by-2 matrix. Alternatively select 2 double vectors and a Z double matrix of commensurate size. This Plot Action is disabled if the current axes not empty and not a map axes."
+                largeicon="(matlabroot)/toolbox/map/icons/geoshow_surface.png"
+                visibility = "@(args) mappickerfunc('defaultshow','geoshow_surface',[],args)"
+                labelfcn = "@(varNames,args) mappickerfunc('defaultlabel','geoshow_surface',varNames)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','geoshow_surface',varNames,args)">
+    </plotaction>
+    
+    <plotaction ID="geoshow_image" description="Plot as geolocated image as a texturemap" function="geoshow"
+                rule="Select either 2 or 3 variables: For 2 variables, the first must be either a double matrix or a 3-d unit8 array with the size of the 3rd dimension of length 3, and the second a 1-by-3 or a 3-by-2 array. For 3 variables, the first must be an M-by-N double matrix, the second a 3 column matrix, and the third a 1-by-3 or a 3-by-2 array. This Plot Action is disabled if the current axes not empty and not a map axes."
+                largeicon="(matlabroot)/toolbox/map/icons/mapshow_image.png"
+                visibility = "@(args) mappickerfunc('defaultshow','geoshow_image',[],args)"
+                labelfcn = "@(varNames,args) mappickerfunc('defaultlabel','geoshow_image',varNames)"
+                action="@(varNames,args) mappickerfunc('defaultdisplay','geoshow_image',varNames,args)">
+    </plotaction>
+    
+</category>
+
+</plotpicker> 

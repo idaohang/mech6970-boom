@@ -1,0 +1,167 @@
+==============================================================
+Version Number: 1.5
+==================================================================
+Company Information
+     Address
+          GeoEye
+          12076 Grant Street
+          Thornton, Colorado 80241
+          U.S.A.
+     Contact Information
+          On the Web: http://www.geoeye.com
+          Customer Service Phone (U.S.A.): 1.800.232.9037
+          Customer Service Phone (World Wide): 1.703.480.7539
+          Customer Service Fax (World Wide): 1.703.450.9570
+          Customer Service Email: info@geoeye.com
+          Customer Service Center hours of operation:
+               Monday - Friday, 7:00 - 18:00 Eastern Standard Time
+==================================================================
+
+Product Order Metadata
+
+Creation Date: 02/23/07
+Product Work Order Number: Uninitialized
+Product Order Number: 221911
+Customer Project Name: IKONOS Satellite Image Sample for MathWorks
+Ground Station ID: PGS
+License Type: Non-Commercial Unrestricted
+Product Order Area (Geographic Coordinates)
+   Number of Coordinates: 4
+      Coordinate: 1
+      Latitude: 42.3453388911 degrees
+      Longitude: -71.0999300862 degrees
+      Coordinate: 2
+      Latitude: 42.3712665662 degrees
+      Longitude: -71.0997660841 degrees
+      Coordinate: 3
+      Latitude: 42.3710644637 degrees
+      Longitude: -71.0453748522 degrees
+      Coordinate: 4
+      Latitude: 42.3451368586 degrees
+      Longitude: -71.0455611443 degrees
+Product Order Area (Map Coordinates in Map Units)
+      Coordinate: 1
+      Map X (Easting): 764319.64 US survey feet
+      Map Y (Northing): 2960572.72 US survey feet
+      Coordinate: 2
+      Map X (Easting): 779017.74 US survey feet
+      Map Y (Northing): 2960572.73 US survey feet
+      Coordinate: 3
+      Map X (Easting): 779017.74 US survey feet
+      Map Y (Northing): 2951123.94 US survey feet
+      Coordinate: 4
+      Map X (Easting): 764319.64 US survey feet
+      Map Y (Northing): 2951123.95 US survey feet
+Sensor Type: Satellite
+Sensor Name: IKONOS-2
+Processing Level: Standard Geometrically Corrected
+Image Type: PAN/MSI
+Interpolation Method: Cubic Convolution
+Multispectral Algorithm: Projective
+Stereo: Mono
+Mosaic: No
+Map Projection: State Plane
+      State Plane Specific Parameters
+      NOS Zone Code: 2001
+Datum: NAD83
+Product Order Pixel Size: 1.0000000000 meters
+Product Order Map Units:  US survey feet
+Conversion Factor: 3.280833333333330
+MTFC Applied: Yes
+DRA Applied: Yes
+Media: CD
+Product Media Format: CD
+File Format: GeoTIFF
+   TIFF Tiled: No
+   Bits per Pixel per Band: 8 bits per pixel
+Multispectral Files: RGB
+
+==============================================================
+
+Source Image Metadata
+
+Number of Source Images: 1
+
+Source Image ID: 2001061615365330000011610098
+Product Image ID: 000
+Sensor: IKONOS-2
+Acquired Nominal GSD
+   Cross Scan: 0.84 meters
+   Along Scan: 0.83 meters
+Scan Azimuth: 180.05 degrees
+Scan Direction: Reverse
+Panchromatic TDI Mode: 13
+Nominal Collection Azimuth: 80.9590 degrees
+Nominal Collection Elevation: 82.24523 degrees
+Sun Angle Azimuth: 137.5557 degrees
+Sun Angle Elevation: 66.42509 degrees
+Acquisition Date/Time: 2001-06-16 15:36 GMT
+Percent Cloud Cover: 0
+
+==============================================================
+
+Product Space Metadata
+
+Number of Image Components: 1
+   X Components: 1
+   Y Components: 1
+Product MBR Geographic Coordinates
+   Number of Coordinates: 4
+      Coordinate: 1
+      Latitude: 42.3453118270 degrees
+      Longitude: -71.0999302594 degrees
+      Coordinate: 2
+      Latitude: 42.3712665731 degrees
+      Longitude: -71.0997660840 degrees
+      Coordinate: 3
+      Latitude: 42.3710643192 degrees
+      Longitude: -71.0453383049 degrees
+      Coordinate: 4
+      Latitude: 42.3451096549 degrees
+      Longitude: -71.0455248056 degrees
+Product Map Coordinates (in Map Units)
+   UL Map X (Easting): 764319.64 US survey feet
+   UL Map Y (Northing): 2960572.73 US survey feet
+Pixel Size X: 3.2808333333 US survey feet
+Pixel Size Y: 3.2808333333 US survey feet
+Product Order Map Units:  US survey feet
+Columns: 4484 pixels
+Rows: 2884 pixels
+Reference Height: -23.2330360413 meters
+
+==============================================================
+
+Product Component Metadata
+
+Number of Components: 1
+
+Component ID: 0000000
+Product Image ID: 000
+Component File Name: po_221911_rgb_0000000.tif 
+Thumbnail File Name: po_221911_rgb_0000000_ovr.jpg
+Country Code: US
+Component Geographic Corner Coordinates
+   Number of Coordinates: 4
+      Coordinate: 1
+      Latitude: 42.3453388352 degrees
+      Longitude: -71.0999300887 degrees
+      Coordinate: 2
+      Latitude: 42.3712665731 degrees
+      Longitude: -71.0997660840 degrees
+      Coordinate: 3
+      Latitude: 42.3710644632 degrees
+      Longitude: -71.0453747275 degrees
+      Coordinate: 4
+      Latitude: 42.3451368069 degrees
+      Longitude: -71.0455610194 degrees
+Component Map Coordinates (in Map Units)
+   UL Map X (Easting): 764319.64 US survey feet
+   UL Map Y (Northing): 2960572.73 US survey feet
+Pixel Size X: 3.2808333333 US survey feet
+Pixel Size Y: 3.2808333333 US survey feet
+Product Order Map Units:  US survey feet
+Columns: 4481 pixels
+Rows: 2881 pixels
+Percent Component Cloud Cover: 0
+
+==============================================================

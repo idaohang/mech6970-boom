@@ -1,0 +1,34 @@
+  A visible red, green, and blue thumbnail composite from a 
+  georeferenced IKONOS-2 panchromatic/multispectral prouduct 
+  covering part of Boston, Massachusetts, USA.  
+  The image is referenced in latitude and longitude.
+
+  Source
+  ------
+  GeoEye
+
+  ==============================================================
+
+  The following is the copyright declaration for the GeoEye image 
+  product stored in file 'boston_ovr.jpg':
+  
+  Copyright GeoEye 
+  Includes material copyrighted by GeoEye, all rights reserved. For more
+  information, please call 1.703.480.7539 or visit http://www.geoeye.com 
+
+  Company Information
+       Address
+             GeoEye
+             12076 Grant Street
+             Thornton, Colorado 80241
+             U.S.A.
+       Contact Information
+            On the Web: http://www.geoeye.com
+            Customer Service Phone (U.S.A.): 1.800.232.9037
+            Customer Service Phone (World Wide): 1.703.480.7539
+            Customer Service Fax (World Wide): 1.703.450.9570
+            Customer Service Email: info@geoeye.com
+            Customer Service Center hours of operation:
+  Monday - Friday, 7:00 - 18:00 Eastern Standard Time
+
+  ==============================================================

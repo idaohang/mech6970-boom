@@ -1,0 +1,659 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML is auto-generated from an M-file.
+To make changes, update the M-file and republish this document.
+      --><title>Compositing and Animating Web Map Service (WMS) Meteorological Layers</title><meta name="generator" content="MATLAB 7.9"><meta name="date" content="2009-07-30"><meta name="m-file" content="mapexwmsanimate"><link rel="stylesheet" type="text/css" href="../../../matlab/demos/private/style.css"></head><body><div class="header"><div class="left"><a href="matlab:edit mapexwmsanimate">Open mapexwmsanimate.m in the Editor</a></div><div class="right"><a href="matlab:echodemo mapexwmsanimate">Run in the Command Window</a></div></div><div class="content"><h1>Compositing and Animating Web Map Service (WMS) Meteorological Layers</h1><!--introduction--><p>This demo shows how to composite and animate data from multiple Web Map Service (WMS) layers. The base layer is from the NASA Goddard Space Flight Center's Scientific Visualization Studio Image Server. The data in this layer shows satellite cloud data during hurricane Katrina from August 23 through August 30 2005. The cloud data was extracted from GOES-12 imagery and overlaid on a color image of the southeast United States. Next-Generation Radar (NEXRAD) images, collected by the Iowa State University's Iowa Environmental Mesonet Web map server, are composited with the cloud data at regular intervals of time.</p><p>This demo accesses the Internet to dynamically render and retrieve maps from WMS servers. An Internet connection must be established to run the demo. Note that the WMS servers may be unavailable, and several minutes may elapse before the maps are returned. One of the challenges of working with WMS servers is that sometimes you will encounter server errors. A function, such as <tt>wmsread</tt>, may time out if a server is unavailable. Often, this is a temporary problem and you will be able to connect to the server if you try again later. For a list of common problems and strategies for working around them, please see the Common Problems with WMS Servers section in the Mapping Toolbox&#8482; User&#8217;s Guide.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Understanding Basic WMS Terminology</a></li><li><a href="#3">Step 1: Find Katrina Layers From Local Database</a></li><li><a href="#7">Step 2: Synchronize WMSLayer Object with Server</a></li><li><a href="#10">Step 3: Explore Katrina Layer Details</a></li><li><a href="#16">Step 4: Retrieve Katrina Map from Server</a></li><li><a href="#17">Step 5: Find NEXRAD Radar Layer</a></li><li><a href="#18">Step 6: Obtain Extent Parameters</a></li><li><a href="#25">Step 7: Retrieve NEXRAD Radar Map from Server</a></li><li><a href="#26">Step 8: Composite NEXRAD Radar Map with Katrina Map</a></li><li><a href="#27">Step 9: Animate the Katrina and NEXRAD Maps</a></li><li><a href="#31">Step 10: Create and View an Animated GIF</a></li><li><a href="#33">Credits</a></li></ul></div><h2>Understanding Basic WMS Terminology<a name="1"></a></h2><p>If you are new to WMS, several key concepts are important to understand and are listed here.</p><div><ul><li><i>Web Map Service</i>  &#8212; The Open Geospatial Consortium (OGC) defines a   Web Map Service (WMS) to be an entity that "produces maps of spatially   referenced data dynamically from geographic information."</li><li><i>WMS server</i> &#8212; A server that follows the guidelines of the OGC to   render maps and return them to clients</li><li><i>map</i> &#8212; The OGC definition for map is "a portrayal of geographic   information as a digital image file suitable for display on a computer   screen."</li><li><i>layer</i> &#8212; A dataset of a specific type of geographic information, such   as temperature, elevation, weather, orthophotos, boundaries,   demographics, topography, transportation, environmental measurements,   and various data from satellites</li><li><i>capabilities document</i> &#8212; An XML document containing metadata   describing the geographic content offered by a server</li></ul></div><h2>Step 1: Find Katrina Layers From Local Database<a name="3"></a></h2><p>One of the more challenging aspects of using WMS is finding a WMS server and then finding the layer that is of interest to you. The process of finding a server that contains the data you need and constructing a specific and often complicated URL with all the relevant details can be very daunting.</p><p>The Mapping Toolbox&#8482; simplifies the process of locating WMS servers and layers by providing a local, installed, and pre-qualified WMS database, that is searchable, using the function <tt>wmsfind</tt>. You can search the database for layers and servers that are of interest to you. Here is how you find layers containing the term <tt>katrina</tt> in either the <tt>LayerName</tt> or <tt>LayerTitle</tt> field of the database:</p><pre class="codeinput">katrina = wmsfind(<span class="string">'katrina'</span>);
+whos <span class="string">katrina</span>
+</pre><pre class="codeoutput">  Name           Size            Bytes  Class       Attributes
+
+  katrina      146x1             70526  WMSLayer              
+
+</pre><p>The search for the term <tt>'katrina'</tt> returned a <tt>WMSLayer</tt> array containing over 100 layers. To inspect information about an individual layer, simply display it like this:</p><pre class="codeinput">katrina(1)
+</pre><pre class="codeoutput">
+ans = 
+
+  WMSLayer
+
+  Properties:
+           Index: 1
+     ServerTitle: 'NASA SVS Image Server'
+       ServerURL: 'http://aes.gsfc.nasa.gov/cgi-bin/wms?'
+      LayerTitle: 'GOES-12 Imagery of Hurricane Katrina: Longwave Infrared Close-up (1024x1024 Animation)'
+       LayerName: '3216_22510'
+          Latlim: [15.0000 45.0000]
+          Lonlim: [-100.0000 -70.0000]
+
+</pre><p>If you type, <tt>katrina</tt>, in the command window, the entire contents of the array are displayed, with each element's index number included in the output. This display makes it easy for you to examine the entire array quickly, searching for a layer of interest. You can display only the <tt>LayerTitle</tt> property for each element by executing the command:</p><p><tt>katrina.disp('Properties', 'layertitle', 'Index', 'off', 'Label', 'off');</tt></p><p>As you've discovered, a search for the generic word <tt>'katrina'</tt> returned results of over 100 layers and you need to select only one layer. In general, a search may even return thousands of layers, which may be too large to review individually. Rather than searching the database again, you may refine your search by using the <tt>refine</tt> method of the <tt>WMSLayer</tt> class. Using the <tt>refine</tt> method is more efficient and returns results faster than <tt>wmsfind</tt> since the search has already been narrowed to a smaller set. Supplying the query string, <tt>'goes-12*katrina*visible*close*up*animation'</tt>, to the <tt>refine</tt> method returns a <tt>WMSLayer</tt> array whose elements contain a match of the query string in either the <tt>LayerTitle</tt> or <tt>LayerName</tt> properties. The <tt>*</tt> character indicates a wild-card search.</p><pre class="codeinput">katrina = katrina.refine(<span class="string">'goes-12*katrina*visible*close*up*animation'</span>);
+whos <span class="string">katrina</span>
+</pre><pre class="codeoutput">  Name         Size            Bytes  Class       Attributes
+
+  katrina      2x1              1032  WMSLayer              
+
+</pre><h2>Step 2: Synchronize WMSLayer Object with Server<a name="7"></a></h2><p>The database only stores a subset of the layer information. For example, information from the layer's abstract, details about the layer's attributes and style information, and the coordinate reference system of the layer are not returned by <tt>wmsfind</tt>. To return all the information, you need to use the <tt>wmsupdate</tt> function. <tt>wmsupdate</tt> synchronizes the layer from the database with the server, filling in the missing properties of the layer.</p><p>Synchronize the first <tt>katrina</tt> layer with the server and display the abstract information.</p><pre class="codeinput">katrina = wmsupdate(katrina(1));
+</pre><pre class="codeinput">disp([<span class="string">'&lt;html&gt;'</span> katrina.Abstract <span class="string">'&lt;/html&gt;'</span>])
+</pre>The GOES-12 satellite sits at 75 degrees west longitude at an altitude of 36,000 kilometers over the equator, in geosynchronous orbit.  At this position its Imager instrument takes pictures of cloud patterns in several wavelengths for all of North and South America, a primary measurement used in weather forecasting.  The Imager takes a pattern of pictures of parts of the Earth in several wavelengths all day, measurements that are vital in weather forecasting.  This animation shows a daily sequence of GOES-12 images in the visible wavelengths, from 0.52 to 0.72 microns, during the period that Hurricane Katrina passed through the Gulf of Mexico.  At one kilometer resolution, the visible band measurement is the highest resolution data from the Imager, which accounts for the very high level of detail in these images.  For this animation, the cloud data was extracted from GOES image and laid over a background color image of the southeast United States.<h2>Step 3: Explore Katrina Layer Details<a name="10"></a></h2><p>You can find out more information about the <tt>katrina</tt> layer by exploring the <tt>Details</tt> property of the <tt>katrina</tt> layer. The <tt>Details.Attributes</tt> field informs you that the layer has fixed width and fixed height attributes, thus the size of the requested map cannot be modified.</p><pre class="codeinput">katrina.Details.Attributes
+</pre><pre class="codeoutput">
+ans = 
+
+      Queryable: 0
+         Opaque: 1
+      NoSubsets: 1
+       Cascaded: 0
+     FixedWidth: 1024
+    FixedHeight: 1024
+
+</pre><p>The <tt>Details.Dimension</tt> field informs you that the layer has a <tt>time</tt> dimension</p><pre class="codeinput">katrina.Details.Dimension
+</pre><pre class="codeoutput">
+ans = 
+
+              Name: 'time'
+             Units: 'ISO8601'
+        UnitSymbol: ''
+           Default: '2005-08-30T17:45Z'
+    MultipleValues: 0
+      NearestValue: 0
+           Current: 0
+            Extent: [1x39 char]
+
+</pre><p>with an extent from <tt>2005-08-23T17:45Z</tt> to <tt>2005-08-30T17:45Z</tt> with a period of <tt>P1D</tt> (one day), as shown in the <tt>Details.Dimension.Extent</tt> field.</p><pre class="codeinput">katrina.Details.Dimension.Extent
+</pre><pre class="codeoutput">
+ans =
+
+2005-08-23T17:45Z/2005-08-30T17:45Z/P1D
+
+</pre><h2>Step 4: Retrieve Katrina Map from Server<a name="16"></a></h2><p>Now that you have found a layer of interest, you can retrieve the raster map using the function <tt>wmsread</tt> and display the map using the function <tt>geoshow</tt>. Since <tt>Time</tt> is not specified when reading the layer, the default time, <tt>2005-08-30T17:45Z</tt>, is retrieved as specified by the <tt>Details.Dimension.Default</tt> field.</p><pre class="codeinput">[katrinaMap, R] = wmsread(katrina);
+
+<span class="comment">% Display the katrinaMap and overlay the data</span>
+<span class="comment">% from the usastatehi.shp file.</span>
+states = shaperead(<span class="string">'usastatehi.shp'</span>, <span class="string">'UseGeoCoords'</span>, true);
+figure
+usamap(katrina.Latlim, katrina.Lonlim)
+geoshow(katrinaMap, R)
+geoshow(states, <span class="string">'FaceColor'</span>, <span class="string">'none'</span>)
+title({katrina.LayerTitle, katrina.Details.Dimension.Default}, <span class="keyword">...</span>
+    <span class="string">'Interpreter'</span>, <span class="string">'none'</span>);
+</pre><img vspace="5" hspace="5" src="mapexwmsanimate_01.png" alt=""> <h2>Step 5: Find NEXRAD Radar Layer<a name="17"></a></h2><p>NEXRAD radar images for the United States are stored on the Iowa State University's IEM Web map server. The server conveniently stores NEXRAD images in five minute increments from <tt>1995-01-01</tt> to the present time. You can find the layer by first searching for the term <tt>IEM WMS Service</tt> in the <tt>ServerTitle</tt> field of the WMS database, then refining the search by requesting the layer of interest, <tt>nexrad-n0r-wmst</tt>.</p><pre class="codeinput">iemLayers  = wmsfind(<span class="string">'IEM WMS Service'</span>, <span class="string">'SearchField'</span>, <span class="string">'servertitle'</span>);
+nexrad = iemLayers.refine(<span class="string">'nexrad-n0r-wmst'</span>);
+
+<span class="comment">% Synchronize the layer with the server.</span>
+nexrad = wmsupdate(nexrad);
+</pre><h2>Step 6: Obtain Extent Parameters<a name="18"></a></h2><p>To composite the <tt>nexrad</tt> layer with the <tt>katrina</tt> layer, you need to obtain the <tt>nexrad</tt> layer at coincidental time periods, and concurrent geographic and image extents. The <tt>Details.Dimension</tt> field informs you that the layer has a time dimension and informs you that the layer's time extent includes seconds.</p><pre class="codeinput">nexrad.Details.Dimension
+</pre><pre class="codeoutput">
+ans = 
+
+              Name: 'time'
+             Units: 'ISO8601'
+        UnitSymbol: ''
+           Default: '2006-06-23T03:10:00Z'
+    MultipleValues: 0
+      NearestValue: 0
+           Current: 0
+            Extent: [1x26 char]
+
+</pre><p>Obtain a time value coincidental with the <tt>katrina</tt> layer, and add seconds to the time specification.</p><pre class="codeinput">nexradTime = [katrina.Details.Dimension.Default(1:end-1) <span class="string">':00Z'</span>];
+</pre><p>Assign <tt>latlim</tt> and <tt>lonlim</tt> variables. Note that the <tt>nexrad</tt> layer limits</p><pre class="codeinput">nexrad.Latlim
+nexrad.Lonlim
+</pre><pre class="codeoutput">
+ans =
+
+    24    50
+
+
+ans =
+
+  -126   -66
+
+</pre><p>do not extend as far south as the <tt>katrina</tt> layer limts.</p><pre class="codeinput">katrina.Latlim
+katrina.Lonlim
+</pre><pre class="codeoutput">
+ans =
+
+    10    40
+
+
+ans =
+
+  -100   -70
+
+</pre><p>When reading the <tt>nexrad</tt> layer, values that lie outside the geographic bounding quadrangle of the layer are set to the background color.</p><pre class="codeinput">latlim = katrina.Latlim;
+lonlim = katrina.Lonlim;
+</pre><p>Assign <tt>imageHeight</tt> and <tt>imageWidth</tt> variables.</p><pre class="codeinput">imageHeight = katrina.Details.Attributes.FixedHeight;
+imageWidth  = katrina.Details.Attributes.FixedWidth;
+</pre><h2>Step 7: Retrieve NEXRAD Radar Map from Server<a name="25"></a></h2><p>You can retrieve the <tt>nexradMap</tt> from the server, specified at the same time as the <tt>katrinaMap</tt> and for the same geographic and image extents, by supplying parameter/value pairs to the <tt>wmsread</tt> function. To accurately retrieve the radar signal from the map, set the <tt>ImageFormat</tt> parameter to the <tt>image/png</tt> format. In order to easily retrieve the signal from the background, set the background color to black ([0 0 0]).</p><pre class="codeinput"><span class="comment">% Retrieve the nexradMap.</span>
+black = [0 0 0];
+[nexradMap, R] = wmsread(nexrad, <span class="string">'Latlim'</span>, latlim, <span class="string">'Lonlim'</span>, lonlim, <span class="keyword">...</span>
+    <span class="string">'Time'</span>, nexradTime, <span class="string">'BackgroundColor'</span>, black, <span class="keyword">...</span>
+    <span class="string">'ImageFormat'</span>, <span class="string">'image/png'</span>, <span class="keyword">...</span>
+    <span class="string">'ImageHeight'</span>, imageHeight, <span class="string">'ImageWidth'</span>, imageWidth);
+
+<span class="comment">% Display the nexradMap.</span>
+figure
+usamap(latlim, lonlim)
+geoshow(nexradMap, R)
+geoshow(states, <span class="string">'FaceColor'</span>, <span class="string">'none'</span>, <span class="string">'EdgeColor'</span>, <span class="string">'white'</span>)
+title({nexrad.LayerTitle, nexradTime}, <span class="string">'Interpreter'</span>, <span class="string">'none'</span>);
+</pre><img vspace="5" hspace="5" src="mapexwmsanimate_02.png" alt=""> <h2>Step 8: Composite NEXRAD Radar Map with Katrina Map<a name="26"></a></h2><p>To composite the <tt>nexradMap</tt> with a copy of the <tt>katrinaMap</tt>, you need to identify the non-background pixels in the <tt>nexradMap</tt>. The <tt>nexradMap</tt> data is returned as an image with class double, because of how this Web map server handles <tt>PNG</tt> format, so you need convert it to uint8 before merging.</p><pre class="codeinput"><span class="comment">% Identify the pixels of the nexradMap image</span>
+<span class="comment">% that do not contain the background color.</span>
+threshold = 0;
+index = any(nexradMap &gt; threshold, 3);
+index = cat(3, index, index, index);
+
+<span class="comment">% Composite the nexradMap with the katrinaMap.</span>
+combination = katrinaMap;
+combination(index) = uint8(nexradMap(index)*255);
+
+<span class="comment">% Display the composited map.</span>
+figure
+usamap(latlim, lonlim)
+geoshow(combination, R);
+geoshow(states, <span class="string">'FaceColor'</span>, <span class="string">'none'</span>)
+title({<span class="string">'GOES 12 Imagery of Hurricane Katrina'</span>, <span class="keyword">...</span>
+    <span class="string">'Composited with NEXRAD Radar'</span>, nexradTime})
+</pre><img vspace="5" hspace="5" src="mapexwmsanimate_03.png" alt=""> <h2>Step 9: Animate the Katrina and NEXRAD Maps<a name="27"></a></h2><p>The next step is to animate the composited <tt>katrina</tt> and <tt>nexrad</tt> maps.</p><pre class="codeinput"><span class="comment">% Create variables that contain the time extent</span>
+<span class="comment">% of the katrina layer.</span>
+extent = katrina.Details.Dimension.Extent;
+slash = <span class="string">'/'</span>;
+slashIndex = strfind(extent, slash);
+startTime = extent(1:slashIndex(1)-1);
+endTime = extent(slashIndex(1)+1:slashIndex(2)-1);
+
+<span class="comment">% Calculate numeric values for the start and end days.</span>
+<span class="comment">% Note that the time extent is in yyyy-mm-dd format.</span>
+hyphen = <span class="string">'-'</span>;
+hyphenIndex = strfind(startTime, hyphen);
+dayIndex = [hyphenIndex(2) + 1, hyphenIndex(2) + 2];
+startDay = str2double(startTime(dayIndex));
+endDay = str2double(endTime(dayIndex));
+
+<span class="comment">% Calculate the total number of animation frames and</span>
+<span class="comment">% initialize a structure to hold the resultant frames.</span>
+frames = struct(<span class="string">'cdata'</span>, [], <span class="string">'colormap'</span>, []);
+numFrames = endDay - startDay + 1;
+frames(numFrames) = frames;
+frameIndex = 0;
+
+<span class="comment">% Assign the initial katrinaTime.</span>
+katrinaTime = startTime;
+</pre><p>Since multiple requests to a server are required for animation, it is more efficient to use the <tt>WebMapServer</tt> and <tt>WMSMapRequest</tt> classes.</p><pre class="codeinput"><span class="comment">% Construct a WebMapServer object for each layer's server.</span>
+nasaServer = WebMapServer(katrina.ServerURL);
+iemServer = WebMapServer(nexrad.ServerURL);
+
+<span class="comment">% Create WMSMapRequest objects.</span>
+katrinaRequest = WMSMapRequest(katrina, nasaServer);
+nexradRequest = WMSMapRequest(nexrad, iemServer);
+
+<span class="comment">% Assign properties.</span>
+nexradRequest.Latlim = latlim;
+nexradRequest.Lonlim = lonlim;
+nexradRequest.BackgroundColor = black;
+nexradRequest.ImageFormat = <span class="string">'image/png'</span>;
+nexradRequest.ImageHeight = imageHeight;
+nexradRequest.ImageWidth  = imageWidth;
+</pre><p>The animation is viewed in a single map display. Outside the animation loop, create a map display.</p><pre class="codeinput">hfig = figure;
+usamap(latlim, lonlim);
+geoshow(states, <span class="string">'FaceColor'</span>, <span class="string">'none'</span>)
+</pre><img vspace="5" hspace="5" src="mapexwmsanimate_04.png" alt=""> <p>To create the animation, loop through each day, from <tt>startDay</tt> to <tt>endDay</tt>, and obtain the <tt>katrinaMap</tt> and the <tt>nexradMap</tt> for that day. Composite the maps into a single image, display the image, get the frame, and store the results in the <tt>frames</tt> structure.</p><pre class="codeinput"><span class="comment">% Initialize hmap so it can be deleted on</span>
+<span class="comment">% the first pass through the loop.</span>
+hmap = [];
+<span class="keyword">for</span> k = startDay:endDay
+
+    <span class="comment">% Update the time values and assign the</span>
+    <span class="comment">% Time property for each server.</span>
+    katrinaTime(dayIndex) = num2str(k);
+    nexradTime = [katrinaTime(1:end-1) <span class="string">':00Z'</span>];
+    katrinaRequest.Time = katrinaTime;
+    nexradRequest.Time = nexradTime;
+
+    <span class="comment">% Get the WMS maps from the servers.</span>
+    katrinaMap = nasaServer.getMap(katrinaRequest.RequestURL);
+    nexradMap = iemServer.getMap(nexradRequest.RequestURL);
+
+    <span class="comment">% Identify the pixels of the nexradMap image</span>
+    <span class="comment">% that do not contain the background color.</span>
+    index = any(nexradMap &gt; threshold, 3);
+    index = cat(3, index, index, index);
+
+    <span class="comment">% Composite the nexradMap with the katrinaMap.</span>
+    combination = katrinaMap;
+    combination(index) = uint8(nexradMap(index)*255);
+
+    <span class="comment">% Delete the old map and display the new composited map.</span>
+    delete(hmap)
+    hmap = geoshow(combination, katrinaRequest.RasterRef);
+    title({<span class="string">'GOES 12 Imagery of Hurricane Katrina'</span>, <span class="keyword">...</span>
+       <span class="string">'Composited with NEXRAD Radar'</span>, nexradTime})
+    drawnow
+
+    <span class="comment">% Update the current frameIndex and</span>
+    <span class="comment">% save the current frame.</span>
+    frameIndex = frameIndex + 1;
+    shg
+    frames(frameIndex) = getframe(hfig);
+<span class="keyword">end</span>
+</pre><img vspace="5" hspace="5" src="mapexwmsanimate_05.png" alt=""> <h2>Step 10: Create and View an Animated GIF<a name="31"></a></h2><p>An animation can be viewed in the browser when the browser opens an animated GIF file. To create the data for the file, loop through the frames and convert the RGB image to an indexed image and save the results in the animated array.</p><pre class="codeinput"><span class="comment">% Create the animated array and the color map in the first frame,</span>
+<span class="comment">% then in the loop add the other frames. The animated array must</span>
+<span class="comment">% be four-dimensional for input to imwrite.</span>
+[animated, cmap] = rgb2ind(frames(1).cdata, 256, <span class="string">'nodither'</span>);
+animated(:,:,1,numFrames) = animated;
+<span class="keyword">for</span> k=2:numFrames
+    animated(:,:,1,k) = rgb2ind(frames(k).cdata, cmap, <span class="string">'nodither'</span>);
+<span class="keyword">end</span>
+
+ <span class="comment">% Write the animated GIF file.</span>
+ filename = <span class="string">'wmsanimated.gif'</span>;
+ delayTime = 2.0;
+ imwrite(animated, cmap, filename, <span class="keyword">...</span>
+     <span class="string">'DelayTime'</span>, delayTime, <span class="string">'LoopCount'</span>, inf);
+
+ <span class="comment">% View the animated GIF file in the browser.</span>
+ web(filename)
+</pre><p><img vspace="5" hspace="5" src="../wmsanimated.gif" alt=""> </p><h2>Credits<a name="33"></a></h2><p><i>Katrina Layer</i></p><p>The Katrina layer used in the demo is from the NASA Goddard Space Flight Center's SVS Image Server and is maintained by the Scientific Visualization Studio.</p><p>For more information about this server, run:</p><pre>  &gt;&gt; wmsinfo('http://aes.gsfc.nasa.gov/cgi-bin/wms?')</pre><p><i>NEXRAD Layer</i></p><p>The NEXRAD layer used in the demo is from the Iowa State University's IEM WMS Service server and is a generated CONUS composite of National Weather Service (NWS) WSR-88D level III base reflectivity.</p><p>For more information about this server, run:</p><pre> &gt;&gt; wmsinfo('http://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/n0r-t.cgi?')</pre><p class="footer">Copyright 2009 The MathWorks, Inc.<br>
+          Published with MATLAB&reg; 7.9</p><p class="footer" id="trademarks">MATLAB and Simulink are registered trademarks of The MathWorks, Inc.  Please see <a href="http://www.mathworks.com/trademarks">www.mathworks.com/trademarks</a> for a list of other trademarks owned by The MathWorks, Inc.  Other product or brand names are trademarks or registered trademarks of their respective owners.</p></div><!--
+##### SOURCE BEGIN #####
+%% Compositing and Animating Web Map Service (WMS) Meteorological Layers
+%
+% This demo shows how to composite and animate data from multiple Web Map
+% Service (WMS) layers. The base layer is from the NASA Goddard Space
+% Flight Center's Scientific Visualization Studio Image Server. The data in
+% this layer shows satellite cloud data during hurricane Katrina from
+% August 23 through August 30 2005. The cloud data was extracted from
+% GOES-12 imagery and overlaid on a color image of the southeast United
+% States. Next-Generation Radar (NEXRAD) images, collected by the Iowa
+% State University's Iowa Environmental Mesonet Web map server, are
+% composited with the cloud data at regular intervals of time.
+%
+% This demo accesses the Internet to dynamically render and retrieve maps
+% from WMS servers. An Internet connection must be established to run the
+% demo. Note that the WMS servers may be unavailable, and several minutes
+% may elapse before the maps are returned. One of the challenges of working
+% with WMS servers is that sometimes you will encounter server errors. A
+% function, such as |wmsread|, may time out if a server is unavailable.
+% Often, this is a temporary problem and you will be able to connect to the
+% server if you try again later. For a list of common problems and
+% strategies for working around them, please see the Common Problems with
+% WMS Servers section in the Mapping Toolbox™ User’s Guide.
+
+% Copyright 2009 The MathWorks, Inc.
+% $Revision: 1.1.6.3 $  $Date: 2009/08/11 15:44:49 $
+
+%% Understanding Basic WMS Terminology
+% If you are new to WMS, several key concepts are important to understand
+% and are listed here.
+%%
+% 
+% * _Web Map Service_  — The Open Geospatial Consortium (OGC) defines a 
+%   Web Map Service (WMS) to be an entity that "produces maps of spatially
+%   referenced data dynamically from geographic information."
+% * _WMS server_ — A server that follows the guidelines of the OGC to 
+%   render maps and return them to clients
+% * _map_ — The OGC definition for map is "a portrayal of geographic 
+%   information as a digital image file suitable for display on a computer 
+%   screen."
+% * _layer_ — A dataset of a specific type of geographic information, such 
+%   as temperature, elevation, weather, orthophotos, boundaries, 
+%   demographics, topography, transportation, environmental measurements, 
+%   and various data from satellites
+% * _capabilities document_ — An XML document containing metadata 
+%   describing the geographic content offered by a server
+
+%% Step 1: Find Katrina Layers From Local Database
+% One of the more challenging aspects of using WMS is finding a WMS server
+% and then finding the layer that is of interest to you. The process of
+% finding a server that contains the data you need and constructing a
+% specific and often complicated URL with all the relevant details can be 
+% very daunting. 
+%
+% The Mapping Toolbox™ simplifies the process of locating WMS servers and
+% layers by providing a local, installed, and pre-qualified WMS database,
+% that is searchable, using the function |wmsfind|. You can search the
+% database for layers and servers that are of interest to you. Here is how
+% you find layers containing the term |katrina| in either the |LayerName| 
+% or |LayerTitle| field of the database:
+katrina = wmsfind('katrina');
+whos katrina
+
+%%
+% The search for the term |'katrina'| returned a |WMSLayer| array
+% containing over 100 layers. To inspect information about an individual
+% layer, simply display it like this:
+katrina(1)
+
+%%
+% If you type, |katrina|, in the command window, the entire contents of the
+% array are displayed, with each element's index number included in the
+% output. This display makes it easy for you to examine the entire array
+% quickly, searching for a layer of interest. You can display only the
+% |LayerTitle| property for each element by executing the command:
+% 
+% |katrina.disp('Properties', 'layertitle', 'Index', 'off', 'Label', 'off');|
+
+%%
+% As you've discovered, a search for the generic word |'katrina'| returned
+% results of over 100 layers and you need to select only one layer. In
+% general, a search may even return thousands of layers, which may be too
+% large to review individually. Rather than searching the database again,
+% you may refine your search by using the |refine| method of the |WMSLayer|
+% class. Using the |refine| method is more efficient and returns results
+% faster than |wmsfind| since the search has already been narrowed to a
+% smaller set. Supplying the query string,
+% |'goes-12*katrina*visible*close*up*animation'|, to the |refine| method
+% returns a |WMSLayer| array whose elements contain a match of the query
+% string in either the |LayerTitle| or |LayerName| properties. The |*|
+% character indicates a wild-card search.
+katrina = katrina.refine('goes-12*katrina*visible*close*up*animation');
+whos katrina
+
+%% Step 2: Synchronize WMSLayer Object with Server
+% The database only stores a subset of the layer information. For example,
+% information from the layer's abstract, details about the layer's
+% attributes and style information, and the coordinate reference system of
+% the layer are not returned by |wmsfind|. To return all the information,
+% you need to use the |wmsupdate| function. |wmsupdate| synchronizes the
+% layer from the database with the server, filling in the missing
+% properties of the layer.
+
+%%
+% Synchronize the first |katrina| layer with the server and display the
+% abstract information.
+katrina = wmsupdate(katrina(1));
+
+%%
+disp(['<html>' katrina.Abstract '</html>'])
+
+%% Step 3: Explore Katrina Layer Details
+% You can find out more information about the |katrina| layer by exploring
+% the |Details| property of the |katrina| layer. The |Details.Attributes|
+% field informs you that the layer has fixed width and fixed height
+% attributes, thus the size of the requested map cannot be modified.
+
+%%
+katrina.Details.Attributes
+
+%%
+% The |Details.Dimension| field informs you that the layer has a |time|
+% dimension 
+
+%%
+katrina.Details.Dimension
+
+%%
+% with an extent from |2005-08-23T17:45Z| to |2005-08-30T17:45Z|
+% with a period of |P1D| (one day), as shown in the
+% |Details.Dimension.Extent| field. 
+
+%%
+katrina.Details.Dimension.Extent
+
+%% Step 4: Retrieve Katrina Map from Server
+% Now that you have found a layer of interest, you can retrieve the raster
+% map using the function |wmsread| and display the map using the function
+% |geoshow|. Since |Time| is not specified when reading the layer, the
+% default time, |2005-08-30T17:45Z|, is retrieved as specified by the
+% |Details.Dimension.Default| field. 
+[katrinaMap, R] = wmsread(katrina);
+
+% Display the katrinaMap and overlay the data 
+% from the usastatehi.shp file.
+states = shaperead('usastatehi.shp', 'UseGeoCoords', true);
+figure
+usamap(katrina.Latlim, katrina.Lonlim)
+geoshow(katrinaMap, R)
+geoshow(states, 'FaceColor', 'none')
+title({katrina.LayerTitle, katrina.Details.Dimension.Default}, ...
+    'Interpreter', 'none');
+
+%% Step 5: Find NEXRAD Radar Layer
+% NEXRAD radar images for the United States are stored on the Iowa State
+% University's IEM Web map server. The server conveniently stores NEXRAD
+% images in five minute increments from |1995-01-01| to the present time.
+% You can find the layer by first searching for the term |IEM WMS Service|
+% in the |ServerTitle| field of the WMS database, then refining the search
+% by requesting the layer of interest, |nexrad-n0r-wmst|.
+iemLayers  = wmsfind('IEM WMS Service', 'SearchField', 'servertitle');
+nexrad = iemLayers.refine('nexrad-n0r-wmst');
+
+% Synchronize the layer with the server.
+nexrad = wmsupdate(nexrad);
+
+%% Step 6: Obtain Extent Parameters
+% To composite the |nexrad| layer with the |katrina| layer, you need to
+% obtain the |nexrad| layer at coincidental time periods, and concurrent
+% geographic and image extents. The |Details.Dimension| field informs you
+% that the layer has a time dimension and informs you that the layer's time
+% extent includes seconds.
+
+%%
+nexrad.Details.Dimension
+
+%%
+% Obtain a time value coincidental with the |katrina| layer, and add
+% seconds to the time specification.
+nexradTime = [katrina.Details.Dimension.Default(1:end-1) ':00Z'];
+
+%%
+% Assign |latlim| and |lonlim| variables. Note that the |nexrad| layer 
+% limits
+nexrad.Latlim
+nexrad.Lonlim
+
+%%
+% do not extend as far south as the |katrina| layer limts. 
+katrina.Latlim
+katrina.Lonlim
+
+%%
+% When reading the |nexrad| layer, values that lie outside the geographic
+% bounding quadrangle of the layer are set to the background color.
+latlim = katrina.Latlim;
+lonlim = katrina.Lonlim;
+
+%%
+% Assign |imageHeight| and |imageWidth| variables.
+imageHeight = katrina.Details.Attributes.FixedHeight;
+imageWidth  = katrina.Details.Attributes.FixedWidth;
+
+%% Step 7: Retrieve NEXRAD Radar Map from Server
+% You can retrieve the |nexradMap| from the server, specified at the same
+% time as the |katrinaMap| and for the same geographic and image extents,
+% by supplying parameter/value pairs to the |wmsread| function. To
+% accurately retrieve the radar signal from the map, set the |ImageFormat|
+% parameter to the |image/png| format. In order to easily retrieve the
+% signal from the background, set the background color to black ([0 0 0]).
+
+% Retrieve the nexradMap.
+black = [0 0 0];
+[nexradMap, R] = wmsread(nexrad, 'Latlim', latlim, 'Lonlim', lonlim, ...
+    'Time', nexradTime, 'BackgroundColor', black, ...
+    'ImageFormat', 'image/png', ...
+    'ImageHeight', imageHeight, 'ImageWidth', imageWidth);
+
+% Display the nexradMap.
+figure
+usamap(latlim, lonlim)
+geoshow(nexradMap, R)
+geoshow(states, 'FaceColor', 'none', 'EdgeColor', 'white')
+title({nexrad.LayerTitle, nexradTime}, 'Interpreter', 'none');
+
+%% Step 8: Composite NEXRAD Radar Map with Katrina Map
+% To composite the |nexradMap| with a copy of the |katrinaMap|, you need to
+% identify the non-background pixels in the |nexradMap|. The |nexradMap|
+% data is returned as an image with class double, because of how this Web
+% map server handles |PNG| format, so you need convert it to uint8 before
+% merging.
+
+% Identify the pixels of the nexradMap image
+% that do not contain the background color.
+threshold = 0;
+index = any(nexradMap > threshold, 3);
+index = cat(3, index, index, index);
+
+% Composite the nexradMap with the katrinaMap.
+combination = katrinaMap;
+combination(index) = uint8(nexradMap(index)*255);
+
+% Display the composited map.
+figure
+usamap(latlim, lonlim)
+geoshow(combination, R);
+geoshow(states, 'FaceColor', 'none')
+title({'GOES 12 Imagery of Hurricane Katrina', ...
+    'Composited with NEXRAD Radar', nexradTime})
+
+%% Step 9: Animate the Katrina and NEXRAD Maps
+% The next step is to animate the composited |katrina| and |nexrad| maps.
+
+% Create variables that contain the time extent 
+% of the katrina layer. 
+extent = katrina.Details.Dimension.Extent;
+slash = '/';
+slashIndex = strfind(extent, slash);
+startTime = extent(1:slashIndex(1)-1);
+endTime = extent(slashIndex(1)+1:slashIndex(2)-1);
+
+% Calculate numeric values for the start and end days. 
+% Note that the time extent is in yyyy-mm-dd format.
+hyphen = '-';
+hyphenIndex = strfind(startTime, hyphen);
+dayIndex = [hyphenIndex(2) + 1, hyphenIndex(2) + 2];
+startDay = str2double(startTime(dayIndex));
+endDay = str2double(endTime(dayIndex));
+
+% Calculate the total number of animation frames and 
+% initialize a structure to hold the resultant frames.
+frames = struct('cdata', [], 'colormap', []);
+numFrames = endDay - startDay + 1;
+frames(numFrames) = frames;
+frameIndex = 0;
+
+% Assign the initial katrinaTime.
+katrinaTime = startTime;
+
+%%
+% Since multiple requests to a server are required for animation, it is
+% more efficient to use the |WebMapServer| and |WMSMapRequest| classes.
+
+% Construct a WebMapServer object for each layer's server.
+nasaServer = WebMapServer(katrina.ServerURL);
+iemServer = WebMapServer(nexrad.ServerURL);
+
+% Create WMSMapRequest objects.
+katrinaRequest = WMSMapRequest(katrina, nasaServer);
+nexradRequest = WMSMapRequest(nexrad, iemServer);
+
+% Assign properties.
+nexradRequest.Latlim = latlim;
+nexradRequest.Lonlim = lonlim;
+nexradRequest.BackgroundColor = black;
+nexradRequest.ImageFormat = 'image/png';
+nexradRequest.ImageHeight = imageHeight;
+nexradRequest.ImageWidth  = imageWidth;
+
+%%
+% The animation is viewed in a single map display. Outside the animation 
+% loop, create a map display. 
+hfig = figure;
+usamap(latlim, lonlim);
+geoshow(states, 'FaceColor', 'none')
+
+%%
+% To create the animation, loop through each day, from |startDay| to
+% |endDay|, and obtain the |katrinaMap| and the |nexradMap| for that day.
+% Composite the maps into a single image, display the image, get the frame,
+% and store the results in the |frames| structure. 
+
+% Initialize hmap so it can be deleted on 
+% the first pass through the loop.
+hmap = [];
+for k = startDay:endDay
+    
+    % Update the time values and assign the 
+    % Time property for each server.
+    katrinaTime(dayIndex) = num2str(k);
+    nexradTime = [katrinaTime(1:end-1) ':00Z'];
+    katrinaRequest.Time = katrinaTime;
+    nexradRequest.Time = nexradTime;
+    
+    % Get the WMS maps from the servers.
+    katrinaMap = nasaServer.getMap(katrinaRequest.RequestURL);
+    nexradMap = iemServer.getMap(nexradRequest.RequestURL);
+    
+    % Identify the pixels of the nexradMap image
+    % that do not contain the background color.
+    index = any(nexradMap > threshold, 3);
+    index = cat(3, index, index, index);
+    
+    % Composite the nexradMap with the katrinaMap.
+    combination = katrinaMap;
+    combination(index) = uint8(nexradMap(index)*255);
+    
+    % Delete the old map and display the new composited map.
+    delete(hmap)
+    hmap = geoshow(combination, katrinaRequest.RasterRef);
+    title({'GOES 12 Imagery of Hurricane Katrina', ...
+       'Composited with NEXRAD Radar', nexradTime})
+    drawnow
+    
+    % Update the current frameIndex and 
+    % save the current frame.
+    frameIndex = frameIndex + 1;
+    shg
+    frames(frameIndex) = getframe(hfig); 
+end
+
+%% Step 10: Create and View an Animated GIF
+% An animation can be viewed in the browser when the browser opens an
+% animated GIF file. To create the data for the file, loop through the
+% frames and convert the RGB image to an indexed image and save the results
+% in the animated array.
+
+% Create the animated array and the color map in the first frame, 
+% then in the loop add the other frames. The animated array must 
+% be four-dimensional for input to imwrite.
+[animated, cmap] = rgb2ind(frames(1).cdata, 256, 'nodither');
+animated(:,:,1,numFrames) = animated;
+for k=2:numFrames
+    animated(:,:,1,k) = rgb2ind(frames(k).cdata, cmap, 'nodither');
+end
+ 
+ % Write the animated GIF file.
+ filename = 'wmsanimated.gif';
+ delayTime = 2.0;
+ imwrite(animated, cmap, filename, ...
+     'DelayTime', delayTime, 'LoopCount', inf);
+ 
+ % View the animated GIF file in the browser.
+ web(filename)
+ 
+%%
+% <<../wmsanimated.gif>>
+
+%% Credits
+%
+% _Katrina Layer_ 
+% 
+% The Katrina layer used in the demo is from the NASA Goddard Space Flight
+% Center's SVS Image Server and is maintained by the Scientific
+% Visualization Studio.
+%
+% For more information about this server, run: 
+%    
+%    >> wmsinfo('http://aes.gsfc.nasa.gov/cgi-bin/wms?')
+%
+% _NEXRAD Layer_
+%
+% The NEXRAD layer used in the demo is from the Iowa State University's IEM
+% WMS Service server and is a generated CONUS composite of National Weather
+% Service (NWS) WSR-88D level III base reflectivity.
+%
+% For more information about this server, run: 
+%    
+%   >> wmsinfo('http://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/n0r-t.cgi?')
+
+displayEndOfDemoMessage(mfilename)
+
+##### SOURCE END #####
+--></body></html>

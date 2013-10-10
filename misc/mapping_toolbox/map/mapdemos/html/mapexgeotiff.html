@@ -1,0 +1,1067 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Exporting Images and Raster Grids to GeoTIFF</title><meta name="generator" content="MATLAB 7.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2011-02-02"><meta name="DC.source" content="mapexgeotiff.m"><link rel="stylesheet" type="text/css" href="../../../matlab/demos/private/style.css"></head><body><div class="header"><div class="left"><a href="matlab:edit mapexgeotiff">Open mapexgeotiff.m in the Editor</a></div><div class="right"><a href="matlab:echodemo mapexgeotiff">Run in the Command Window</a></div></div><div class="content"><h1>Exporting Images and Raster Grids to GeoTIFF</h1><!--introduction--><p>This gallery illustrates how to write georeferenced data to GeoTIFF files using <tt>geotiffwrite</tt>. The Tagged-Image File Format (TIFF) has emerged as a popular format to store raster data. The GeoTIFF specification defines a set of TIFF tags that describe "Cartographic" information associated with the TIFF raster data. Using these tags, geolocated imagery or raster grids with coordinates referenced to a Geographic Coordinate System (latitude and longitude) or a (planar) Projected Coordinate System can be stored in a GeoTIFF file.</p><p>This demo illustrates how to store data referenced to standard geographic and projected coordinate systems to GeoTIFF files.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Setup: Define a Data Directory and Filename Utility Function</a></li><li><a href="#3">Example 1: Write an Image Referenced to Geographic Coordinates</a></li><li><a href="#9">Example 2: Write a Data Grid Referenced to Geographic Coordinates</a></li><li><a href="#11">Key Concept: Data Organization in GeoTIFF Files</a></li><li><a href="#18">Example 3: Write an Image Referenced to a Projected Coordinate System</a></li><li><a href="#24">Example 4: Write a Cropped Image from a GeoTIFF File</a></li><li><a href="#30">Example 5: Write SDTS DEM Data Referenced to UTM Coordinates</a></li><li><a href="#42">Example 6: Write USGS 24K DEM Data Referenced to UTM Coordinates</a></li><li><a href="#56">Example 7: Write Non-Image Data to a TIFF File</a></li><li><a href="#65">Example 8: Modify an Existing File While Preserving Meta Information</a></li><li><a href="#81">Cleanup: Remove Data Directory</a></li><li><a href="#82">Credits</a></li></ul></div><h2>Setup: Define a Data Directory and Filename Utility Function<a name="1"></a></h2><p>This demo creates several temporary GeoTIFF files and uses the variable <tt>datadir</tt> to denote their location.  The value used here is determined by the output of the <tt>tempdir</tt> command, but you could easily customize this. The contents of <tt>datadir</tt> are deleted at the end of the demo.</p><pre class="codeinput">datadir = fullfile(tempdir, <span class="string">'datadir'</span>);
+<span class="keyword">if</span> ~exist(datadir, <span class="string">'dir'</span>)
+   mkdir(datadir)
+<span class="keyword">end</span>
+</pre><p>Define an anonymous function to prepend <tt>datadir</tt> to the input filename:</p><pre class="codeinput">datafile = @(filename)fullfile(datadir, filename);
+</pre><h2>Example 1: Write an Image Referenced to Geographic Coordinates<a name="3"></a></h2><p>Write an image referenced to WGS84 geographic coordinates to a GeoTIFF file.  The original image (boston_ovr.jpg) is stored in JPEG format, with referencing information external to the image file, in the "world file" (boston_ovr.jgw). The image provides a low resolution "overview" of Boston, Massachusetts, and the surrounding area.</p><p>Read the image from the JPEG file.</p><pre class="codeinput">basename = <span class="string">'boston_ovr'</span>;
+imagefile = [basename <span class="string">'.jpg'</span>];
+RGB = imread(imagefile);
+</pre><p>Obtain a referencing object from the world file.</p><pre class="codeinput">worldfile = getworldfilename(imagefile);
+R = worldfileread(worldfile, <span class="string">'geographic'</span>, size(RGB));
+</pre><p>Write the image to a GeoTIFF file.</p><pre class="codeinput">filename = datafile([basename <span class="string">'.tif'</span>]);
+geotiffwrite(filename, RGB, R)
+</pre><p>Notice that the GeoTIFF information from the file indicates that the Geographic Coordinate System (GCS) is "WGS 84" and that all fields (PCS, Projection, MapSys, Zone, CTProjection, ProjParm, ProjParmId, and UOMLength) associated with a projected coordinate system are empty.</p><pre class="codeinput">disp(geotiffinfo(filename))
+</pre><pre class="codeoutput">             Filename: 'C:\TEMP\R2011ad_384_3332\datadir\boston_ovr.tif'
+          FileModDate: '02-Feb-2011 22:17:41'
+             FileSize: 1674212
+               Format: 'tif'
+        FormatVersion: []
+               Height: 769
+                Width: 722
+             BitDepth: 8
+            ColorType: 'truecolor'
+            ModelType: 'ModelTypeGeographic'
+                  PCS: ''
+           Projection: ''
+               MapSys: ''
+                 Zone: []
+         CTProjection: ''
+             ProjParm: []
+           ProjParmId: {}
+                  GCS: 'WGS 84'
+                Datum: 'World Geodetic System 1984'
+            Ellipsoid: 'WGS 84'
+            SemiMajor: 6378137
+            SemiMinor: 6.3568e+006
+                   PM: 'Greenwich'
+    PMLongToGreenwich: 0
+            UOMLength: ''
+    UOMLengthInMeters: 1
+             UOMAngle: 'degree'
+    UOMAngleInDegrees: 1
+            TiePoints: [1x1 struct]
+           PixelScale: [3x1 double]
+           SpatialRef: [1x1 spatialref.GeoRasterReference]
+            RefMatrix: [3x2 double]
+          BoundingBox: [2x2 double]
+         CornerCoords: [1x1 struct]
+         GeoTIFFCodes: [1x1 struct]
+          GeoTIFFTags: [1x1 struct]
+
+</pre><p>Re-import the new GeoTIFF file and display the Boston overview image, correctly located, in a map axes.</p><pre class="codeinput">figure
+ax = gca;
+usamap(R.Latlim, R.Lonlim)
+setm(ax, <span class="keyword">...</span>
+    <span class="string">'PLabelLocation'</span>, .05, <span class="keyword">...</span>
+    <span class="string">'PlabelRound'</span>, -2, <span class="keyword">...</span>
+    <span class="string">'PlineLocation'</span>, .05)
+geoshow(filename)
+title(<span class="string">'Boston Overview'</span>, <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+</pre><img vspace="5" hspace="5" src="mapexgeotiff_01.png" alt=""> <h2>Example 2: Write a Data Grid Referenced to Geographic Coordinates<a name="9"></a></h2><p>Write a data grid referenced to WGS84 geographic coordinates to a GeoTIFF file.</p><pre class="codeinput">load(<span class="string">'topo'</span>);
+Z = topo;
+R = georasterref(<span class="string">'RasterSize'</span>, size(Z), <span class="keyword">...</span>
+    <span class="string">'Latlim'</span>, [-90 90], <span class="string">'Lonlim'</span>, [0 360]);
+filename = datafile(<span class="string">'topo.tif'</span>);
+geotiffwrite(filename, Z, R);
+</pre><p>The values in the data grid range from -7473 to 5731. Display the grid as a texture-mapped surface rather than as an intensity image.</p><pre class="codeinput">figure(<span class="string">'Renderer'</span>,<span class="string">'zbuffer'</span>)
+ax = gca;
+worldmap <span class="string">world</span>; gridm <span class="string">off</span>
+setm(ax, <span class="keyword">...</span>
+   <span class="string">'MLabelParallel'</span>, -90, <span class="keyword">...</span>
+   <span class="string">'MLabelLocation'</span>,  90)
+h = geoshow(filename, <span class="string">'DisplayType'</span>, <span class="string">'texturemap'</span>);
+demcmap(get(h,<span class="string">'CData'</span>))
+title(<span class="string">'Topography Data Grid'</span>, <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+</pre><img vspace="5" hspace="5" src="mapexgeotiff_02.png" alt=""> <h2>Key Concept: Data Organization in GeoTIFF Files<a name="11"></a></h2><p>One of the important concepts to understand when exporting data with <tt>geotiffwrite</tt> is that the pixels (grid cells) in the file are ordered as in an image; the columns will always start from the north and the rows will always start from the west. This means that the GeoTIFF ModelPixelScaleTag values are always positive. From the previous example:</p><pre class="codeinput">filename = datafile(<span class="string">'topo.tif'</span>);
+info = geotiffinfo(filename);
+disp(info.GeoTIFFTags.ModelPixelScaleTag)
+</pre><pre class="codeoutput">     1     1     0
+
+</pre><p>However, note that the input data from topo.mat is organized with the columns starting from the south:</p><pre class="codeinput">disp(R.ColumnsStartFrom)
+</pre><pre class="codeoutput">south
+</pre><p>Hence, the data in the GeoTIFF file, in this case, is flipped compared to the input data:</p><pre class="codeinput">[fileZ, fileR] = geotiffread(filename);
+isequal(fileZ, flipud(Z))
+</pre><pre class="codeoutput">
+ans =
+
+     1
+
+</pre><p>and the columns start from the north:</p><pre class="codeinput">disp(R.ColumnsStartFrom)
+</pre><pre class="codeoutput">south
+</pre><p>If you need the data in your workspace to match again, then flip the Z values and set the referencing object such that the columns start from the south:</p><pre class="codeinput">fileR.ColumnsStartFrom = <span class="string">'south'</span>;
+fileZ = flipud(fileZ);
+isequal(fileZ, Z)
+</pre><pre class="codeoutput">
+ans =
+
+     1
+
+</pre><p>The data in the GeoTIFF file is encoded with positive scale values so that when viewed with ordinary TIFF-viewing software, the northern edge of that data set is at the top. If you absolutely need the data layout in the file to match the input data layout, you can construct a Tiff object and use it to reset the ModelPixelScaleTag, the ModelTiepointTag, the Compression tag, and the image data.</p><pre class="codeinput">t = Tiff(filename, <span class="string">'r+'</span>);
+pixelScale = t.getTag(<span class="string">'ModelPixelScaleTag'</span>);
+pixelScale(2) = -pixelScale(2);
+t.setTag(<span class="string">'ModelPixelScaleTag'</span>, pixelScale);
+tiepoint = t.getTag(<span class="string">'ModelTiepointTag'</span>);
+tiepoint(5) = R.intrinsicToGeographic(.5, .5);
+t.setTag(<span class="string">'ModelTiepointTag'</span>, tiepoint);
+t.setTag(<span class="string">'Compression'</span>, Tiff.Compression.None)
+t.write(Z);
+t.rewriteDirectory;
+t.close
+</pre><p>You can verify that the referencing object and data grid from the file match the input in this case.</p><pre class="codeinput">[Z2, R2] = geotiffread(filename);
+isequal(Z2, Z)
+isequal(R2, R)
+</pre><pre class="codeoutput">
+ans =
+
+     1
+
+
+ans =
+
+     1
+
+</pre><h2>Example 3: Write an Image Referenced to a Projected Coordinate System<a name="18"></a></h2><p>Write the Concord orthophotos to a single GeoTIFF file. The two adjacent (west-to-east) georeferenced grayscale (panchromatic) orthophotos cover part of Concord, Massachusetts, USA.  The concord_ortho.txt file indicates that the data are referenced to the Massachusetts Mainland (NAD83) State Plane Projected Coordinate System. Units are meters. This corresponds to the GeoTIFF code number 26986 as noted in the GeoTIFF specification at <a href="http://www.remotesensing.org/geotiff/spec/geotiff6.html#6.3.3.1">http://www.remotesensing.org/geotiff/spec/geotiff6.html#6.3.3.1</a> under PCS_NAD83_Massachusetts.</p><p>Read the two orthophotos and combine the images.</p><pre class="codeinput">X_west = imread(<span class="string">'concord_ortho_w.tif'</span>);
+X_east = imread(<span class="string">'concord_ortho_e.tif'</span>);
+X = [X_west X_east];
+</pre><p>Use their world files and sizes to construct a referencing object for each image, and construct a new one for their combination.</p><pre class="codeinput">R_west = worldfileread(<span class="string">'concord_ortho_w.tfw'</span>, <span class="string">'planar'</span>, size(X_west));
+R_east = worldfileread(<span class="string">'concord_ortho_e.tfw'</span>, <span class="string">'planar'</span>, size(X_east));
+R = R_west;
+R.XLimWorld = [R_west.XLimWorld(1) R_east.XLimWorld(2)];
+R.RasterSize = size(X);
+</pre><p>Write the data to a GeoTIFF file. Use the code number, 26986, indicating the PCS_NAD83_Massachusetts Projected Coordinate System.</p><pre class="codeinput">coordRefSysCode = 26986;
+filename = datafile(<span class="string">'concord_ortho.tif'</span>);
+geotiffwrite(filename, X, R, <span class="string">'CoordRefSysCode'</span>, coordRefSysCode);
+</pre><p>Notice that the GeoTIFF information from the file indicates that the Geographic Coordinate System (GCS) is "NAD83" and that all fields associated with a Projected Coordinate System are filled in with appropriate values.</p><pre class="codeinput">disp(geotiffinfo(filename))
+</pre><pre class="codeoutput">             Filename: 'C:\TEMP\R2011ad_384_3332\datadir\concord_ortho.tif'
+          FileModDate: '02-Feb-2011 22:17:51'
+             FileSize: 8068660
+               Format: 'tif'
+        FormatVersion: []
+               Height: 2000
+                Width: 4000
+             BitDepth: 8
+            ColorType: 'grayscale'
+            ModelType: 'ModelTypeProjected'
+                  PCS: 'NAD83 / Massachusetts Mainland'
+           Projection: 'SPCS83 Massachusetts Mainland zone (meters)'
+               MapSys: 'STATE_PLANE_83'
+                 Zone: 2001
+         CTProjection: 'CT_LambertConfConic_2SP'
+             ProjParm: [7x1 double]
+           ProjParmId: {7x1 cell}
+                  GCS: 'NAD83'
+                Datum: 'North American Datum 1983'
+            Ellipsoid: 'GRS 1980'
+            SemiMajor: 6378137
+            SemiMinor: 6.3568e+006
+                   PM: 'Greenwich'
+    PMLongToGreenwich: 0
+            UOMLength: 'metre'
+    UOMLengthInMeters: 1
+             UOMAngle: 'degree'
+    UOMAngleInDegrees: 1
+            TiePoints: [1x1 struct]
+           PixelScale: [3x1 double]
+           SpatialRef: [1x1 spatialref.MapRasterReference]
+            RefMatrix: [3x2 double]
+          BoundingBox: [2x2 double]
+         CornerCoords: [1x1 struct]
+         GeoTIFFCodes: [1x1 struct]
+          GeoTIFFTags: [1x1 struct]
+
+</pre><p>Display the combined Concord orthophotos.</p><pre class="codeinput">figure
+mapshow(filename)
+title(<span class="string">'Combined Orthophotos'</span>, <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+xlabel(<span class="string">'MA Mainland State Plane easting, meters'</span>, <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+ylabel(<span class="string">'MA Mainland State Plane northing, meters'</span>, <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+</pre><img vspace="5" hspace="5" src="mapexgeotiff_03.png" alt=""> <h2>Example 4: Write a Cropped Image from a GeoTIFF File<a name="24"></a></h2><p>Write the first 1024 columns and last 1024 rows of a GeoTIFF file to a new GeoTIFF file.</p><p>Read the RGB image and referencing information from the boston.tif GeoTIFF file.</p><pre class="codeinput">[A, R] = geotiffread(<span class="string">'boston.tif'</span>);
+</pre><p>Create the cropped image.</p><pre class="codeinput">row = [size(A,1)-1024+1 size(A,1)];
+col = [1 1024];
+subImage = A(row(1):row(2), col(1):col(2), :);
+</pre><p>Create a new referencing object for the cropped image.</p><pre class="codeinput">xi = col + [-.5 .5];
+yi = row + [-.5 .5];
+[xlim, ylim] = R.intrinsicToWorld(xi, yi);
+subR = R;
+subR.RasterSize = size(subImage);
+subR.XLimWorld = sort(xlim);
+subR.YLimWorld = sort(ylim);
+</pre><p>Write the cropped image to a GeoTIFF file. Use the GeoKeyDirectoryTag from the original GeoTIFF file.</p><pre class="codeinput">info = geotiffinfo(<span class="string">'boston.tif'</span>);
+filename = datafile(<span class="string">'boston_subimage.tif'</span>);
+geotiffwrite(filename, subImage, subR,  <span class="keyword">...</span>
+   <span class="string">'GeoKeyDirectoryTag'</span>, info.GeoTIFFTags.GeoKeyDirectoryTag);
+</pre><p>Display the GeoTIFF file containing the cropped image.</p><pre class="codeinput">figure
+mapshow(filename);
+title(<span class="string">'Fenway Park - Cropped Image from GeoTIFF File'</span>, <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+xlabel(<span class="string">'MA Mainland State Plane easting, survey feet'</span>, <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+ylabel(<span class="string">'MA Mainland State Plane northing, survey feet'</span>,<span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+</pre><img vspace="5" hspace="5" src="mapexgeotiff_04.png" alt=""> <h2>Example 5: Write SDTS DEM Data Referenced to UTM Coordinates<a name="30"></a></h2><p>Write the Mount Washington SDTS DEM terrain data to a GeoTIFF file.</p><pre class="codeinput">sdtsFilename = <span class="string">'9129CATD.ddf'</span>;
+</pre><p>Read the SDTS DEM data from the file.</p><pre class="codeinput">[Z, refmat] = sdtsdemread(sdtsFilename);
+</pre><p>Convert the referencing matrix to a spatialref.MapRasterReference object.</p><pre class="codeinput">R = refmatToMapRasterReference(refmat, size(Z));
+</pre><p>Set the raster interpretation to 'postings' because it's a USGS DEM. This corresponds to the GeoTIFF raster type PixelIsPoint.</p><pre class="codeinput">R.RasterInterpretation = <span class="string">'postings'</span>;
+</pre><p>Create a structure to hold the GeoKeyDirectoryTag information.</p><pre class="codeinput">key = struct( <span class="keyword">...</span>
+    <span class="string">'GTModelTypeGeoKey'</span>,  [], <span class="keyword">...</span>
+    <span class="string">'GTRasterTypeGeoKey'</span>, [], <span class="keyword">...</span>
+    <span class="string">'ProjectedCSTypeGeoKey'</span>, []);
+</pre><p>Set the model type to 1, indicating a Projected Coordinate System (PCS).</p><pre class="codeinput">key.GTModelTypeGeoKey  = 1;
+</pre><p>Set the raster type to 2, indicating PixelIsPoint (postings).</p><pre class="codeinput">key.GTRasterTypeGeoKey = 2;
+</pre><p>As indicated by the <tt>sdtsinfo</tt> function, the data are referenced to Universal Transverse Mercator (UTM), Zone 19, in the North American Datum of 1927. This corresponds to the GeoTIFF code number 26719, (PCS_NAD27_UTM_zone_19N).</p><pre class="codeinput">info = sdtsinfo(sdtsFilename);
+fprintf([ <span class="keyword">...</span>
+    <span class="string">'Horizontal Datum: %s\n'</span>, <span class="keyword">...</span>
+    <span class="string">'MapRefSystem:     %s\n'</span>, <span class="keyword">...</span>
+    <span class="string">'ZoneNumber:       %d\n'</span>], <span class="keyword">...</span>
+    info.HorizontalDatum, info.MapRefSystem, info.ZoneNumber);
+</pre><pre class="codeoutput">Horizontal Datum: North American 1927
+MapRefSystem:     UTM
+ZoneNumber:       19
+</pre><p>Set the projected coordinate system type value to 26719.</p><pre class="codeinput">key.ProjectedCSTypeGeoKey = 26719;
+</pre><p>Write the data to the GeoTIFF file.</p><pre class="codeinput">filename = datafile(<span class="string">'9129.tif'</span>);
+geotiffwrite(filename, Z, R, <span class="string">'GeoKeyDirectoryTag'</span>, key);
+</pre><p>One of the advantages of storing the DEM data in a GeoTIFF file is the ability to easily construct a GeoTIFF projection structure from the information in the file. Convert the outline of the state of New Hampshire to UTM using the projection information.</p><pre class="codeinput">S = shaperead(<span class="string">'usastatelo'</span>, <span class="string">'UseGeoCoords'</span>, true, <span class="string">'Selector'</span>,<span class="keyword">...</span>
+   {@(name) any(strcmp(name,{<span class="string">'New Hampshire'</span>})), <span class="string">'Name'</span>});
+proj = geotiffinfo(filename);
+[x, y] = projfwd(proj, [S.Lat], [S.Lon]);
+</pre><p>Display the GeoTIFF DEM file and the outline of New Hampshire.</p><pre class="codeinput">figure
+mapshow(x,y)
+hold <span class="string">on</span>
+h = mapshow(filename, <span class="string">'DisplayType'</span>, <span class="string">'surface'</span>);
+demcmap(get(h,<span class="string">'ZData'</span>))
+title(<span class="string">'SDTS DEM'</span>, <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+xlabel(<span class="string">'UTM Zone 19 easting, meters'</span>,  <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+ylabel(<span class="string">'UTM Zone 19 northing, meters'</span>, <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+</pre><img vspace="5" hspace="5" src="mapexgeotiff_05.png" alt=""> <h2>Example 6: Write USGS 24K DEM Data Referenced to UTM Coordinates<a name="42"></a></h2><p>Write the South San Francisco DEM data to a GeoTIFF file.</p><p>Uncompress the DEM data file to the <tt>datadir</tt> directory and read all the data from the file.</p><pre class="codeinput">filenames = gunzip(<span class="string">'sanfranciscos.dem.gz'</span>, datadir);
+demFilename = filenames{1};
+[lat, lon, Z, header] = usgs24kdem(demFilename, 1);
+</pre><p>As indicated from the header structure:</p><pre class="codeinput">fprintf([ <span class="keyword">...</span>
+    <span class="string">'PlanimetricReferenceSystemCode: %s\n'</span>, <span class="keyword">...</span>
+    <span class="string">'Zone:                           %d\n'</span>, <span class="keyword">...</span>
+    <span class="string">'HorizontalDatum:                %d\n'</span>], <span class="keyword">...</span>
+    header.PlanimetricReferenceSystemCode, <span class="keyword">...</span>
+    header.Zone, header.HorizontalDatum);
+</pre><pre class="codeoutput">PlanimetricReferenceSystemCode: UTM
+Zone:                           10
+HorizontalDatum:                NaN
+</pre><p>the data are referenced to Universal Transverse Mercator (UTM), Zone 10, and the horizontal datum is undefined. We will assume the North American Datum of 1927. The data are stored in the file in UTM coordinates; however, the <tt>usgs24kdem</tt> function inverse projects the location of each sample point (postings) to return a geolocated data grid in geographic coordinates. Project the latitude and longitude coordinates back into UTM.</p><pre class="codeinput">mstruct = defaultm(<span class="string">'utm'</span>);
+mstruct.geoid = almanac(<span class="string">'earth'</span>, <span class="string">'clarke66'</span>, <span class="string">'meters'</span>);
+mstruct.zone = num2str(header.Zone);
+mstruct = defaultm(mstruct);
+[x,y] = mfwdtran(mstruct, lat, lon);
+</pre><p>Create a referencing object to tie the rows and columns of the data grid to UTM. Since the data are a USGS DEM, the raster interpretation is 'postings' and the X and Y world limits are defined by the limits of the UTM coordinates.</p><pre class="codeinput">R = maprasterref( <span class="keyword">...</span>
+    <span class="string">'RasterSize'</span>, size(Z), <span class="keyword">...</span>
+    <span class="string">'XLimWorld'</span>, [min(x(:)) max(x(:))], <span class="keyword">...</span>
+    <span class="string">'YLimWorld'</span>, [min(y(:)) max(y(:))], <span class="keyword">...</span>
+    <span class="string">'ColumnsStartFrom'</span>, <span class="string">'north'</span>, <span class="keyword">...</span>
+    <span class="string">'RasterInterpretation'</span>, <span class="string">'postings'</span>);
+</pre><p>Create a structure to hold the GeoKeyDirectoryTag information.</p><pre class="codeinput">key = struct( <span class="keyword">...</span>
+    <span class="string">'GTModelTypeGeoKey'</span>,  [], <span class="keyword">...</span>
+    <span class="string">'GTRasterTypeGeoKey'</span>, [], <span class="keyword">...</span>
+    <span class="string">'ProjectedCSTypeGeoKey'</span>, []);
+</pre><p>Set the model type to 1, indicating a Projected Coordinate System (PCS).</p><pre class="codeinput">key.GTModelTypeGeoKey  = 1;
+</pre><p>Set the raster type to 2, indicating PixelIsPoint (postings).</p><pre class="codeinput">key.GTRasterTypeGeoKey = 2;
+</pre><p>As noted above, the data are referenced to Universal Transverse Mercator (UTM), Zone 10, and the North American Datum of 1927 is assumed. This corresponds to the GeoTIFF code number 26710 (PCS_NAD27_UTM_zone_10N).</p><pre class="codeinput">key.ProjectedCSTypeGeoKey = 26710;
+</pre><p>Write the GeoTIFF file.</p><pre class="codeinput">filename = datafile(<span class="string">'sanfrancisos.tif'</span>);
+geotiffwrite(filename, Z, R, <span class="string">'GeoKeyDirectoryTag'</span>, key);
+</pre><p>Convert the outline of the state of California to UTM using the projection information from the GeoTIFF file.</p><pre class="codeinput">S = shaperead(<span class="string">'usastatehi'</span>, <span class="string">'UseGeoCoords'</span>, true, <span class="string">'Selector'</span>,<span class="keyword">...</span>
+    {@(name) any(strcmp(name,{<span class="string">'California'</span>})), <span class="string">'Name'</span>});
+proj = geotiffinfo(filename);
+[x, y] = projfwd(proj, [S.Lat], [S.Lon]);
+</pre><p>Read the elevations and referencing information from the file.</p><pre class="codeinput">[Z, R] = geotiffread(filename);
+</pre><p>For viewing, set values with 0 elevation to -1.</p><pre class="codeinput">Z(Z==0) = -1;
+</pre><p>Display the South San Francisco 24K DEM and the outline of the Bay Area.</p><pre class="codeinput">figure
+ax = gca;
+mapshow(x, y)
+hold <span class="string">on</span>
+mapshow(Z, R, <span class="string">'DisplayType'</span>, <span class="string">'surface'</span>)
+demcmap(Z)
+set(ax, <span class="keyword">...</span>
+    <span class="string">'XLim'</span>, [ 517911  581619], <span class="keyword">...</span>
+    <span class="string">'YLim'</span>, [4136580 4200288])
+title(<span class="string">'San Francisco South 24K DEM'</span>,   <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>);
+xlabel(<span class="string">'UTM Zone 10 easting, meters'</span>,  <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+ylabel(<span class="string">'UTM Zone 10 northing, meters'</span>, <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+</pre><img vspace="5" hspace="5" src="mapexgeotiff_06.png" alt=""> <h2>Example 7: Write Non-Image Data to a TIFF File<a name="56"></a></h2><p>If you are working with a data grid that is class double with values that range outside the limits required of a floating point intensity image (0 &lt;= data &lt;= 1), and if you store the data in a TIFF file using <tt>imwrite</tt>, then your data will be truncated to the interval [0,1], scaled, and converted to uint8. Obviously it is possible for some or even all of the information in the original data to be lost. To avoid these problems, and preserve the numeric class and range of your data grid, use <tt>geotiffwrite</tt> to write the data.</p><p>Create sample Z data.</p><pre class="codeinput">n = 512;
+Z = peaks(n);
+</pre><p>Create a referencing object to reference the rows and columns to X and Y.</p><pre class="codeinput">R = maprasterref(<span class="string">'RasterSize'</span>, [n n], <span class="string">'ColumnsStartFrom'</span>,<span class="string">'North'</span>);
+R.XLimWorld = R.XLimIntrinsic;
+R.YLimWorld = R.YLimIntrinsic;
+</pre><p>Create a structure to hold the GeoKeyDirectoryTag information. Set the model type to 1 indicating Projected Coordinate System (PCS).</p><pre class="codeinput">key.GTModelTypeGeoKey  = 1;
+</pre><p>Set the raster type to 1 indicating PixelIsArea (cells).</p><pre class="codeinput">key.GTRasterTypeGeoKey = 1;
+</pre><p>Indicate a user-defined Projected Coordinate System by using a value of 32767.</p><pre class="codeinput">key.ProjectedCSTypeGeoKey = 32767;
+</pre><p>Write the data to a GeoTIFF file with <tt>geotiffwrite</tt>. For comparing, write a second file using <tt>imwrite</tt>.</p><pre class="codeinput">filename_geotiff = datafile(<span class="string">'zdata_geotiff.tif'</span>);
+filename_tiff = datafile(<span class="string">'zdata_tiff.tif'</span>);
+geotiffwrite(filename_geotiff, Z, R, <span class="string">'GeoKeyDirectoryTag'</span>, key);
+imwrite(Z, filename_tiff);
+</pre><p>Now when you read the file using <tt>imread</tt> the data values and class type are preserved.</p><pre class="codeinput">geoZ  = imread(filename_geotiff);
+tiffZ = imread(filename_tiff);
+fprintf(<span class="string">'Does data in GeoTIFF file equal Z: %d\n'</span>, isequal(geoZ, Z))
+fprintf(<span class="string">'Does data in    TIFF file equal Z: %d\n'</span>, isequal(tiffZ, Z))
+fprintf(<span class="string">'Class type of data in GeoTIFF file: %s\n'</span>, class(geoZ))
+fprintf(<span class="string">'Class type of data in    TIFF file: %s\n'</span>, class(tiffZ))
+</pre><pre class="codeoutput">Does data in GeoTIFF file equal Z: 1
+Does data in    TIFF file equal Z: 0
+Class type of data in GeoTIFF file: double
+Class type of data in    TIFF file: uint8
+</pre><p>You can view the data grid using <tt>mapshow</tt>.</p><pre class="codeinput">figure
+mapshow(filename_geotiff, <span class="string">'DisplayType'</span>, <span class="string">'texturemap'</span>);
+title(<span class="string">'Peaks - Stored in GeoTIFF File'</span>, <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+</pre><img vspace="5" hspace="5" src="mapexgeotiff_07.png" alt=""> <h2>Example 8: Modify an Existing File While Preserving Meta Information<a name="65"></a></h2><p>You may want to modify an existing file, but preserve most, if not all, of the meta information in the TIFF tags. This example converts the RGB image from the boston.tif file into an indexed image and writes the new data to an indexed GeoTIFF file. The TIFF meta-information, with the exception of the values of the BitDepth, BitsPerSample, and PhotometricInterpretation tags, is preserved.</p><p>Read the image from the <tt>boston.tif</tt> GeoTIFF file.</p><pre class="codeinput">RGB = geotiffread(<span class="string">'boston.tif'</span>);
+</pre><p>Use the MATLAB function, <tt>rgb2ind</tt>, to convert the RGB image to an indexed image <tt>X</tt> using minimum variance quantization.</p><pre class="codeinput">[X, cmap] = rgb2ind(RGB, 65536);
+</pre><p>Obtain the TIFF tag information using <tt>imfinfo</tt>.</p><pre class="codeinput">info = imfinfo(<span class="string">'boston.tif'</span>);
+</pre><p>Create a TIFF tags structure to preserve selected information from the <tt>info</tt> structure.</p><pre class="codeinput">tags = struct( <span class="keyword">...</span>
+    <span class="string">'Compression'</span>,  info.Compression, <span class="keyword">...</span>
+    <span class="string">'RowsPerStrip'</span>, info.RowsPerStrip, <span class="keyword">...</span>
+    <span class="string">'XResolution'</span>,  info.XResolution, <span class="keyword">...</span>
+    <span class="string">'YResolution'</span>,  info.YResolution, <span class="keyword">...</span>
+    <span class="string">'ImageDescription'</span>, info.ImageDescription, <span class="keyword">...</span>
+    <span class="string">'DateTime'</span>,    info.DateTime, <span class="keyword">...</span>
+    <span class="string">'Copyright'</span>,   info.Copyright, <span class="keyword">...</span>
+    <span class="string">'Orientation'</span>, info.Orientation);
+</pre><p>The values for the PlanarConfiguration and ResolutionUnit tags must be numeric rather than string valued, as returned by <tt>imfinfo</tt>. You can set these tags by using the constant properties from the Tiff class. For example, here are the possible values for the PlanarConfiguration constant property:</p><pre class="codeinput">disp(Tiff.PlanarConfiguration)
+</pre><pre class="codeoutput">      Chunky: 1
+    Separate: 2
+
+</pre><p>Use the string value from the <tt>info</tt> structure to obtain the desired value.</p><pre class="codeinput">tags.PlanarConfiguration = <span class="keyword">...</span>
+    Tiff.PlanarConfiguration.(info.PlanarConfiguration);
+</pre><p>Set the ResolutionUnit value in the same manner.</p><pre class="codeinput">tags.ResolutionUnit = Tiff.ResolutionUnit.(info.ResolutionUnit);
+</pre><p>The Software tag is not set in the <tt>boston.tif</tt> file. However, <tt>geotiffwrite</tt> will set the <tt>Software</tt> tag by default. To preserve the information, set the value to the empty string which prevents the tag from being written to the file.</p><pre class="codeinput">tags.Software = <span class="string">''</span>;
+</pre><p>Copy the GeoTIFF and referencing information from <tt>boston.tif</tt>.</p><pre class="codeinput">geoinfo = geotiffinfo(<span class="string">'boston.tif'</span>);
+key = geoinfo.GeoTIFFTags.GeoKeyDirectoryTag;
+R = geoinfo.SpatialRef;
+</pre><p>Write to the GeoTIFF file.</p><pre class="codeinput">filename = datafile(<span class="string">'boston_indexed.tif'</span>);
+geotiffwrite(filename, X, cmap, R, <span class="keyword">...</span>
+    <span class="string">'GeoKeyDirectoryTag'</span>, key, <span class="string">'TiffTags'</span>, tags);
+</pre><p>View the indexed image.</p><pre class="codeinput">figure
+mapshow(filename)
+title(<span class="string">'Boston - Indexed Image'</span>, <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+xlabel(<span class="string">'MA Mainland State Plane easting, survey feet'</span>, <span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+ylabel(<span class="string">'MA Mainland State Plane northing, survey feet'</span>,<span class="string">'FontWeight'</span>, <span class="string">'bold'</span>)
+</pre><img vspace="5" hspace="5" src="mapexgeotiff_08.png" alt=""> <p>Compare the information in the structures that should be equal by creating an HTML table.</p><pre class="codeinput">info_rgb = imfinfo(<span class="string">'boston.tif'</span>);
+info_indexed = imfinfo(filename);
+tagNames = fieldnames(tags);
+tagNames(strcmpi(<span class="string">'Software'</span>, tagNames)) = [];
+names = [{<span class="string">'Height'</span> <span class="string">'Width'</span>}, tagNames'];
+
+table = <span class="string">' '</span>;
+<span class="keyword">for</span> k = 1:numel(names)
+    tableEntry = sprintf( <span class="keyword">...</span>
+        <span class="string">'&lt;tr&gt;&lt;td&gt; %s &lt;/td&gt;&lt;td&gt; %s &lt;/td&gt;&lt;td&gt; %s &lt;/td&gt;&lt;/tr&gt;'</span>, <span class="keyword">...</span>
+        names{k}, <span class="keyword">...</span>
+        num2str(info_rgb.(names{k})), <span class="keyword">...</span>
+        num2str(info_indexed.(names{k})));
+    table = [table tableEntry];  <span class="comment">%#ok&lt;*AGROW&gt;</span>
+<span class="keyword">end</span>
+
+htmlTable_equal = [ <span class="keyword">...</span>
+    <span class="string">'&lt;html&gt;&lt;table border=1 cellpadding=1&gt;&lt;tr&gt;'</span>, <span class="keyword">...</span>
+    <span class="string">'&lt;td&gt;&lt;b&gt;Fieldname&lt;/b&gt;&lt;/td&gt;'</span>, <span class="keyword">...</span>
+    <span class="string">'&lt;td&gt;&lt;b&gt;RGB Information&lt;/b&gt;&lt;/td&gt;'</span>, <span class="keyword">...</span>
+    <span class="string">'&lt;td&gt;&lt;b&gt;Indexed Information&lt;/b&gt;&lt;/td&gt;'</span>, <span class="keyword">...</span>
+    <span class="string">'&lt;/tr&gt;'</span>, table, <span class="string">'&lt;/tr&gt;&lt;/table&gt;&lt;/html&gt;'</span>];
+</pre><p>Compare the information that should be different, since you converted an RGB image to an indexed image by creating an HTML table.</p><pre class="codeinput">names = {<span class="string">'FileSize'</span>, <span class="string">'ColorType'</span>, <span class="string">'BitDepth'</span>, <span class="keyword">...</span>
+    <span class="string">'BitsPerSample'</span>, <span class="string">'PhotometricInterpretation'</span>};
+table = <span class="string">' '</span>;
+<span class="keyword">for</span> k = 1:numel(names)
+    tableEntry = sprintf( <span class="keyword">...</span>
+        <span class="string">'&lt;tr&gt;&lt;td&gt; %s &lt;/td&gt;&lt;td&gt; %s &lt;/td&gt;&lt;td&gt; %s &lt;/td&gt;&lt;/tr&gt;'</span>, <span class="keyword">...</span>
+        names{k}, <span class="keyword">...</span>
+        num2str(info_rgb.(names{k})), <span class="keyword">...</span>
+        num2str(info_indexed.(names{k})));
+    table = [table tableEntry];
+<span class="keyword">end</span>
+
+htmlTable_notequal = [ <span class="keyword">...</span>
+    <span class="string">'&lt;html&gt;&lt;table border=1 cellpadding=1&gt;&lt;tr&gt;'</span>, <span class="keyword">...</span>
+    <span class="string">'&lt;td&gt;&lt;b&gt;Fieldname&lt;/b&gt;&lt;/td&gt;'</span>, <span class="keyword">...</span>
+    <span class="string">'&lt;td&gt;&lt;b&gt;RGB Information&lt;/b&gt;&lt;/td&gt;'</span>, <span class="keyword">...</span>
+    <span class="string">'&lt;td&gt;&lt;b&gt;Indexed Information&lt;/b&gt;&lt;/td&gt;'</span>, <span class="keyword">...</span>
+    <span class="string">'&lt;/tr&gt;'</span>, table, <span class="string">'&lt;/tr&gt;&lt;/table&gt;&lt;/html&gt;'</span>];
+</pre><p>View table of meta information expected to be equal.</p><pre class="codeinput">disp(htmlTable_equal);
+</pre><table border=1 cellpadding=1><tr><td><b>Fieldname</b></td><td><b>RGB Information</b></td><td><b>Indexed Information</b></td></tr> <tr><td> Height </td><td> 2881 </td><td> 2881 </td></tr><tr><td> Width </td><td> 4481 </td><td> 4481 </td></tr><tr><td> Compression </td><td> Uncompressed </td><td> Uncompressed </td></tr><tr><td> RowsPerStrip </td><td> 256 </td><td> 256 </td></tr><tr><td> XResolution </td><td> 300 </td><td> 300 </td></tr><tr><td> YResolution </td><td> 300 </td><td> 300 </td></tr><tr><td> ImageDescription </td><td> "GeoEye" </td><td> "GeoEye" </td></tr><tr><td> DateTime </td><td> 2007:02:23 21:46:13 </td><td> 2007:02:23 21:46:13 </td></tr><tr><td> Copyright </td><td> "(c) GeoEye" </td><td> "(c) GeoEye" </td></tr><tr><td> Orientation </td><td> 1 </td><td> 1 </td></tr><tr><td> PlanarConfiguration </td><td> Chunky </td><td> Chunky </td></tr><tr><td> ResolutionUnit </td><td> Inch </td><td> Inch </td></tr></tr></table><p>View table of meta information expected to not be equal.</p><pre class="codeinput">disp(htmlTable_notequal);
+</pre><table border=1 cellpadding=1><tr><td><b>Fieldname</b></td><td><b>RGB Information</b></td><td><b>Indexed Information</b></td></tr> <tr><td> FileSize </td><td> 38729900 </td><td> 27925078 </td></tr><tr><td> ColorType </td><td> truecolor </td><td> indexed </td></tr><tr><td> BitDepth </td><td> 24 </td><td> 16 </td></tr><tr><td> BitsPerSample </td><td> 8  8  8 </td><td> 16 </td></tr><tr><td> PhotometricInterpretation </td><td> RGB </td><td> RGB Palette </td></tr></tr></table><h2>Cleanup: Remove Data Directory<a name="81"></a></h2><p>Remove the temporary directory and data files. rmdir(datadir, 's')</p><h2>Credits<a name="82"></a></h2><p>boston.tif, boston_ovr.jpg:</p><pre>  Copyright GeoEye
+  Includes material copyrighted by GeoEye, all rights reserved. For more
+  information, please call 1.703.480.7539 or visit http://www.geoeye.com</pre><pre>  For more information, run:</pre><pre>  &gt;&gt; type boston.txt
+  &gt;&gt; type boston_ovr.txt</pre><p>concord_orthow_w.tif, concord_ortho_e.tif:</p><pre>  Office of Geographic and Environmental Information (MassGIS),
+  Commonwealth of Massachusetts  Executive Office of Environmental Affairs
+  http://www.state.ma.us/mgis</pre><pre>  For more information, run:</pre><pre>  &gt;&gt; type concord_ortho.txt</pre><p>9129CATD.ddf (and supporting files):</p><pre>  United States Geological Survey (USGS) 7.5-minute Digital Elevation
+  Model (DEM) in Spatial Data Transfer Standard (SDTS) format for the
+  Mt. Washington quadrangle, with elevation in meters.
+  http://edc.usgs.gov/products/elevation/dem.html</pre><pre>  For more information, run:</pre><pre>  &gt;&gt; type 9129.txt</pre><p>sanfranciscos.dem.gz:</p><pre>  United States Geological Survey (USGS) 7.5-minute Digital Elevation
+  Model (DEM) for the SAN FRANCISCO SOUTH, CA BIG BASIN DEM quadrangle,
+  with elevation in feet.</pre><pre>  For more information, run:</pre><pre>  &gt;&gt; type sanfranciscos.txt</pre><p class="footer">Copyright 2010 The MathWorks, Inc.<br>
+          Published with MATLAB&reg; 7.12</p><p class="footer" id="trademarks">MATLAB and Simulink are registered trademarks of The MathWorks, Inc.  Please see <a href="http://www.mathworks.com/trademarks">www.mathworks.com/trademarks</a> for a list of other trademarks owned by The MathWorks, Inc.  Other product or brand names are trademarks or registered trademarks of their respective owners.</p></div><!--
+##### SOURCE BEGIN #####
+%% Exporting Images and Raster Grids to GeoTIFF
+%
+% This gallery illustrates how to write georeferenced data to GeoTIFF files
+% using |geotiffwrite|. The Tagged-Image File Format (TIFF) has emerged as
+% a popular format to store raster data. The GeoTIFF specification defines
+% a set of TIFF tags that describe "Cartographic" information associated
+% with the TIFF raster data. Using these tags, geolocated imagery or raster
+% grids with coordinates referenced to a Geographic Coordinate System
+% (latitude and longitude) or a (planar) Projected Coordinate System can be
+% stored in a GeoTIFF file.
+%
+% This demo illustrates how to store data referenced to standard geographic
+% and projected coordinate systems to GeoTIFF files.
+%
+% Copyright 2010 The MathWorks, Inc.
+% $Revision: 1.1.6.1.2.1 $  $Date: 2010/12/06 00:01:15 $
+
+%% Setup: Define a Data Directory and Filename Utility Function
+% This demo creates several temporary GeoTIFF files and uses the variable
+% |datadir| to denote their location.  The value used here is determined by
+% the output of the |tempdir| command, but you could easily customize this.
+% The contents of |datadir| are deleted at the end of the demo.
+datadir = fullfile(tempdir, 'datadir');
+if ~exist(datadir, 'dir')
+   mkdir(datadir)
+end
+
+%%
+% Define an anonymous function to prepend |datadir| to the input filename:
+datafile = @(filename)fullfile(datadir, filename);
+
+%% Example 1: Write an Image Referenced to Geographic Coordinates
+% Write an image referenced to WGS84 geographic coordinates to a GeoTIFF
+% file.  The original image (boston_ovr.jpg) is stored in JPEG format, with
+% referencing information external to the image file, in the "world file"
+% (boston_ovr.jgw). The image provides a low resolution "overview" of
+% Boston, Massachusetts, and the surrounding area.
+
+%%
+% Read the image from the JPEG file.
+basename = 'boston_ovr';
+imagefile = [basename '.jpg'];
+RGB = imread(imagefile);
+
+%%
+% Obtain a referencing object from the world file.
+worldfile = getworldfilename(imagefile);
+R = worldfileread(worldfile, 'geographic', size(RGB));
+
+%% 
+% Write the image to a GeoTIFF file.
+filename = datafile([basename '.tif']);
+geotiffwrite(filename, RGB, R)
+
+%%
+% Notice that the GeoTIFF information from the file indicates that the
+% Geographic Coordinate System (GCS) is "WGS 84" and that all fields
+% (PCS, Projection, MapSys, Zone, CTProjection, ProjParm, ProjParmId, and
+% UOMLength) associated with a projected coordinate system are empty.
+disp(geotiffinfo(filename))
+
+%%
+% Re-import the new GeoTIFF file and display the Boston overview image,
+% correctly located, in a map axes.
+figure
+ax = gca;
+usamap(R.Latlim, R.Lonlim)
+setm(ax, ...
+    'PLabelLocation', .05, ...
+    'PlabelRound', -2, ...
+    'PlineLocation', .05)
+geoshow(filename)
+title('Boston Overview', 'FontWeight', 'bold')
+
+%% Example 2: Write a Data Grid Referenced to Geographic Coordinates
+% Write a data grid referenced to WGS84 geographic coordinates to a GeoTIFF
+% file.
+load('topo');
+Z = topo;
+R = georasterref('RasterSize', size(Z), ...
+    'Latlim', [-90 90], 'Lonlim', [0 360]);
+filename = datafile('topo.tif');
+geotiffwrite(filename, Z, R);
+
+%%
+% The values in the data grid range from -7473 to 5731. Display the grid as
+% a texture-mapped surface rather than as an intensity image.
+figure('Renderer','zbuffer')
+ax = gca;
+worldmap world; gridm off
+setm(ax, ...
+   'MLabelParallel', -90, ...
+   'MLabelLocation',  90)
+h = geoshow(filename, 'DisplayType', 'texturemap');
+demcmap(get(h,'CData'))
+title('Topography Data Grid', 'FontWeight', 'bold')
+
+%% Key Concept: Data Organization in GeoTIFF Files
+% One of the important concepts to understand when exporting data with
+% |geotiffwrite| is that the pixels (grid cells) in the file are ordered as
+% in an image; the columns will always start from the north and the rows
+% will always start from the west. This means that the GeoTIFF
+% ModelPixelScaleTag values are always positive. From the previous example:
+filename = datafile('topo.tif');
+info = geotiffinfo(filename);
+disp(info.GeoTIFFTags.ModelPixelScaleTag)
+
+%%
+% However, note that the input data from topo.mat is organized with the
+% columns starting from the south:
+disp(R.ColumnsStartFrom)
+
+%%
+% Hence, the data in the GeoTIFF file, in this case, is flipped compared to
+% the input data:
+[fileZ, fileR] = geotiffread(filename);
+isequal(fileZ, flipud(Z))
+
+%%
+% and the columns start from the north:
+disp(R.ColumnsStartFrom)
+
+%%
+% If you need the data in your workspace to match again, then flip the Z
+% values and set the referencing object such that the columns start from
+% the south:
+fileR.ColumnsStartFrom = 'south';
+fileZ = flipud(fileZ);
+isequal(fileZ, Z)
+
+%%
+% The data in the GeoTIFF file is encoded with positive scale values so
+% that when viewed with ordinary TIFF-viewing software, the northern edge
+% of that data set is at the top. If you absolutely need the data layout in
+% the file to match the input data layout, you can construct a Tiff object
+% and use it to reset the ModelPixelScaleTag, the ModelTiepointTag, the
+% Compression tag, and the image data.
+t = Tiff(filename, 'r+');
+pixelScale = t.getTag('ModelPixelScaleTag');
+pixelScale(2) = -pixelScale(2);
+t.setTag('ModelPixelScaleTag', pixelScale);
+tiepoint = t.getTag('ModelTiepointTag');
+tiepoint(5) = R.intrinsicToGeographic(.5, .5);
+t.setTag('ModelTiepointTag', tiepoint);
+t.setTag('Compression', Tiff.Compression.None)
+t.write(Z);
+t.rewriteDirectory;
+t.close
+
+%%
+% You can verify that the referencing object and data grid from the file
+% match the input in this case.
+[Z2, R2] = geotiffread(filename);
+isequal(Z2, Z)
+isequal(R2, R)
+
+%% Example 3: Write an Image Referenced to a Projected Coordinate System
+% Write the Concord orthophotos to a single GeoTIFF file. The two adjacent
+% (west-to-east) georeferenced grayscale (panchromatic) orthophotos cover
+% part of Concord, Massachusetts, USA.  The concord_ortho.txt file
+% indicates that the data are referenced to the Massachusetts Mainland
+% (NAD83) State Plane Projected Coordinate System. Units are meters. This
+% corresponds to the GeoTIFF code number 26986 as noted in the GeoTIFF
+% specification at
+% http://www.remotesensing.org/geotiff/spec/geotiff6.html#6.3.3.1 under
+% PCS_NAD83_Massachusetts.
+
+%%
+% Read the two orthophotos and combine the images.
+X_west = imread('concord_ortho_w.tif');
+X_east = imread('concord_ortho_e.tif');
+X = [X_west X_east];
+
+%% 
+% Use their world files and sizes to construct a referencing object for
+% each image, and construct a new one for their combination.
+R_west = worldfileread('concord_ortho_w.tfw', 'planar', size(X_west));
+R_east = worldfileread('concord_ortho_e.tfw', 'planar', size(X_east));
+R = R_west;
+R.XLimWorld = [R_west.XLimWorld(1) R_east.XLimWorld(2)];
+R.RasterSize = size(X);
+
+%% 
+% Write the data to a GeoTIFF file. Use the code number, 26986, indicating
+% the PCS_NAD83_Massachusetts Projected Coordinate System.
+coordRefSysCode = 26986;
+filename = datafile('concord_ortho.tif');
+geotiffwrite(filename, X, R, 'CoordRefSysCode', coordRefSysCode);
+
+%%
+% Notice that the GeoTIFF information from the file indicates that the
+% Geographic Coordinate System (GCS) is "NAD83" and that all fields
+% associated with a Projected Coordinate System are filled in with
+% appropriate values.
+disp(geotiffinfo(filename))
+
+%%
+% Display the combined Concord orthophotos.
+figure
+mapshow(filename)
+title('Combined Orthophotos', 'FontWeight', 'bold')
+xlabel('MA Mainland State Plane easting, meters', 'FontWeight', 'bold')
+ylabel('MA Mainland State Plane northing, meters', 'FontWeight', 'bold')
+
+%% Example 4: Write a Cropped Image from a GeoTIFF File
+% Write the first 1024 columns and last 1024 rows of a GeoTIFF file to a
+% new GeoTIFF file.
+
+%%
+% Read the RGB image and referencing information from the boston.tif
+% GeoTIFF file.
+[A, R] = geotiffread('boston.tif');
+
+%%
+% Create the cropped image.
+row = [size(A,1)-1024+1 size(A,1)];
+col = [1 1024];
+subImage = A(row(1):row(2), col(1):col(2), :);
+
+%%
+% Create a new referencing object for the cropped image.
+xi = col + [-.5 .5];
+yi = row + [-.5 .5];
+[xlim, ylim] = R.intrinsicToWorld(xi, yi);
+subR = R;
+subR.RasterSize = size(subImage);
+subR.XLimWorld = sort(xlim);
+subR.YLimWorld = sort(ylim);
+
+%%
+% Write the cropped image to a GeoTIFF file.
+% Use the GeoKeyDirectoryTag from the original GeoTIFF file.
+info = geotiffinfo('boston.tif');
+filename = datafile('boston_subimage.tif');
+geotiffwrite(filename, subImage, subR,  ...
+   'GeoKeyDirectoryTag', info.GeoTIFFTags.GeoKeyDirectoryTag);
+
+%%
+% Display the GeoTIFF file containing the cropped image. 
+figure
+mapshow(filename);
+title('Fenway Park - Cropped Image from GeoTIFF File', 'FontWeight', 'bold')
+xlabel('MA Mainland State Plane easting, survey feet', 'FontWeight', 'bold')
+ylabel('MA Mainland State Plane northing, survey feet','FontWeight', 'bold')
+
+
+%% Example 5: Write SDTS DEM Data Referenced to UTM Coordinates
+% Write the Mount Washington SDTS DEM terrain data to a GeoTIFF file.
+sdtsFilename = '9129CATD.ddf';
+
+%%
+% Read the SDTS DEM data from the file.
+[Z, refmat] = sdtsdemread(sdtsFilename);
+
+%%
+% Convert the referencing matrix to a spatialref.MapRasterReference object.
+R = refmatToMapRasterReference(refmat, size(Z));
+
+%% 
+% Set the raster interpretation to 'postings' because it's a USGS DEM. This
+% corresponds to the GeoTIFF raster type PixelIsPoint.
+R.RasterInterpretation = 'postings';
+
+%%
+% Create a structure to hold the GeoKeyDirectoryTag information.
+key = struct( ...
+    'GTModelTypeGeoKey',  [], ...
+    'GTRasterTypeGeoKey', [], ...
+    'ProjectedCSTypeGeoKey', []);
+
+%%
+% Set the model type to 1, indicating a Projected Coordinate System (PCS).
+key.GTModelTypeGeoKey  = 1;  
+
+%%
+% Set the raster type to 2, indicating PixelIsPoint (postings).
+key.GTRasterTypeGeoKey = 2;  
+
+%% 
+% As indicated by the |sdtsinfo| function, the data are referenced to
+% Universal Transverse Mercator (UTM), Zone 19, in the North American Datum
+% of 1927. This corresponds to the GeoTIFF code number 26719,
+% (PCS_NAD27_UTM_zone_19N).
+info = sdtsinfo(sdtsFilename);
+fprintf([ ...
+    'Horizontal Datum: %s\n', ...
+    'MapRefSystem:     %s\n', ...
+    'ZoneNumber:       %d\n'], ...
+    info.HorizontalDatum, info.MapRefSystem, info.ZoneNumber);
+
+%%
+% Set the projected coordinate system type value to 26719. 
+key.ProjectedCSTypeGeoKey = 26719;
+
+%%
+% Write the data to the GeoTIFF file.
+filename = datafile('9129.tif');
+geotiffwrite(filename, Z, R, 'GeoKeyDirectoryTag', key);
+
+%%
+% One of the advantages of storing the DEM data in a GeoTIFF file is the
+% ability to easily construct a GeoTIFF projection structure from the
+% information in the file. Convert the outline of the state of New
+% Hampshire to UTM using the projection information.
+S = shaperead('usastatelo', 'UseGeoCoords', true, 'Selector',...
+   {@(name) any(strcmp(name,{'New Hampshire'})), 'Name'});
+proj = geotiffinfo(filename);
+[x, y] = projfwd(proj, [S.Lat], [S.Lon]);
+
+%%
+% Display the GeoTIFF DEM file and the outline of New Hampshire.
+figure
+mapshow(x,y)
+hold on
+h = mapshow(filename, 'DisplayType', 'surface');
+demcmap(get(h,'ZData'))
+title('SDTS DEM', 'FontWeight', 'bold')
+xlabel('UTM Zone 19 easting, meters',  'FontWeight', 'bold')
+ylabel('UTM Zone 19 northing, meters', 'FontWeight', 'bold')
+
+%% Example 6: Write USGS 24K DEM Data Referenced to UTM Coordinates
+% Write the South San Francisco DEM data to a GeoTIFF file.
+
+%%
+% Uncompress the DEM data file to the |datadir| directory and read all the
+% data from the file.
+filenames = gunzip('sanfranciscos.dem.gz', datadir);
+demFilename = filenames{1};
+[lat, lon, Z, header] = usgs24kdem(demFilename, 1);
+
+%%
+% As indicated from the header structure:
+fprintf([ ...
+    'PlanimetricReferenceSystemCode: %s\n', ...
+    'Zone:                           %d\n', ...
+    'HorizontalDatum:                %d\n'], ...
+    header.PlanimetricReferenceSystemCode, ...
+    header.Zone, header.HorizontalDatum);
+
+%%
+% the data are referenced to Universal Transverse Mercator (UTM), Zone 10,
+% and the horizontal datum is undefined. We will assume the North American
+% Datum of 1927. The data are stored in the file in UTM coordinates;
+% however, the |usgs24kdem| function inverse projects the location of each
+% sample point (postings) to return a geolocated data grid in geographic
+% coordinates. Project the latitude and longitude coordinates back into
+% UTM.
+mstruct = defaultm('utm');
+mstruct.geoid = almanac('earth', 'clarke66', 'meters'); 
+mstruct.zone = num2str(header.Zone);
+mstruct = defaultm(mstruct);
+[x,y] = mfwdtran(mstruct, lat, lon);
+
+%%
+% Create a referencing object to tie the rows and columns of the data grid
+% to UTM. Since the data are a USGS DEM, the raster interpretation is
+% 'postings' and the X and Y world limits are defined by the limits of the
+% UTM coordinates.
+R = maprasterref( ...
+    'RasterSize', size(Z), ...
+    'XLimWorld', [min(x(:)) max(x(:))], ...
+    'YLimWorld', [min(y(:)) max(y(:))], ...
+    'ColumnsStartFrom', 'north', ...
+    'RasterInterpretation', 'postings');
+
+%%
+% Create a structure to hold the GeoKeyDirectoryTag information.
+key = struct( ...
+    'GTModelTypeGeoKey',  [], ...
+    'GTRasterTypeGeoKey', [], ...
+    'ProjectedCSTypeGeoKey', []);
+
+%%
+% Set the model type to 1, indicating a Projected Coordinate System (PCS).
+key.GTModelTypeGeoKey  = 1;  
+
+%%
+% Set the raster type to 2, indicating PixelIsPoint (postings).
+key.GTRasterTypeGeoKey = 2;  
+
+%%
+% As noted above, the data are referenced to Universal Transverse Mercator
+% (UTM), Zone 10, and the North American Datum of 1927 is assumed. This
+% corresponds to the GeoTIFF code number 26710 (PCS_NAD27_UTM_zone_10N).
+key.ProjectedCSTypeGeoKey = 26710;
+
+%%
+% Write the GeoTIFF file.
+filename = datafile('sanfrancisos.tif');
+geotiffwrite(filename, Z, R, 'GeoKeyDirectoryTag', key);
+
+%%
+% Convert the outline of the state of California to UTM using the
+% projection information from the GeoTIFF file.
+S = shaperead('usastatehi', 'UseGeoCoords', true, 'Selector',...
+    {@(name) any(strcmp(name,{'California'})), 'Name'});
+proj = geotiffinfo(filename);
+[x, y] = projfwd(proj, [S.Lat], [S.Lon]);
+
+%%
+% Read the elevations and referencing information from the file.
+[Z, R] = geotiffread(filename);
+
+%%
+% For viewing, set values with 0 elevation to -1.
+Z(Z==0) = -1;
+
+%%
+% Display the South San Francisco 24K DEM and the outline of the Bay Area.
+figure
+ax = gca;
+mapshow(x, y)
+hold on
+mapshow(Z, R, 'DisplayType', 'surface')
+demcmap(Z)
+set(ax, ...
+    'XLim', [ 517911  581619], ...
+    'YLim', [4136580 4200288])
+title('San Francisco South 24K DEM',   'FontWeight', 'bold');
+xlabel('UTM Zone 10 easting, meters',  'FontWeight', 'bold')
+ylabel('UTM Zone 10 northing, meters', 'FontWeight', 'bold')
+
+%% Example 7: Write Non-Image Data to a TIFF File
+% If you are working with a data grid that is class double with values that
+% range outside the limits required of a floating point intensity image 
+% (0 <= data <= 1), and if you store the data in a TIFF file using
+% |imwrite|, then your data will be truncated to the interval [0,1],
+% scaled, and converted to uint8. Obviously it is possible for some or even
+% all of the information in the original data to be lost. To avoid these
+% problems, and preserve the numeric class and range of your data grid, use
+% |geotiffwrite| to write the data.
+
+%%
+% Create sample Z data.
+n = 512;
+Z = peaks(n);
+
+%%
+% Create a referencing object to reference the rows and columns to X and Y.
+R = maprasterref('RasterSize', [n n], 'ColumnsStartFrom','North');
+R.XLimWorld = R.XLimIntrinsic;
+R.YLimWorld = R.YLimIntrinsic;
+
+%%
+% Create a structure to hold the GeoKeyDirectoryTag information.
+% Set the model type to 1 indicating Projected Coordinate System (PCS).
+key.GTModelTypeGeoKey  = 1;  
+
+%%
+% Set the raster type to 1 indicating PixelIsArea (cells).
+key.GTRasterTypeGeoKey = 1;  
+
+%%
+% Indicate a user-defined Projected Coordinate System by using a value of
+% 32767.
+key.ProjectedCSTypeGeoKey = 32767;
+
+%%
+% Write the data to a GeoTIFF file with |geotiffwrite|. For comparing,
+% write a second file using |imwrite|.
+filename_geotiff = datafile('zdata_geotiff.tif');
+filename_tiff = datafile('zdata_tiff.tif');
+geotiffwrite(filename_geotiff, Z, R, 'GeoKeyDirectoryTag', key);
+imwrite(Z, filename_tiff);
+
+%%
+% Now when you read the file using |imread| the data values and class
+% type are preserved.
+geoZ  = imread(filename_geotiff);
+tiffZ = imread(filename_tiff);
+fprintf('Does data in GeoTIFF file equal Z: %d\n', isequal(geoZ, Z))
+fprintf('Does data in    TIFF file equal Z: %d\n', isequal(tiffZ, Z))
+fprintf('Class type of data in GeoTIFF file: %s\n', class(geoZ))
+fprintf('Class type of data in    TIFF file: %s\n', class(tiffZ))
+
+%%
+% You can view the data grid using |mapshow|.
+figure
+mapshow(filename_geotiff, 'DisplayType', 'texturemap');
+title('Peaks - Stored in GeoTIFF File', 'FontWeight', 'bold')
+
+%% Example 8: Modify an Existing File While Preserving Meta Information
+% You may want to modify an existing file, but preserve most, if not all,
+% of the meta information in the TIFF tags. This example converts the RGB
+% image from the boston.tif file into an indexed image and writes the new
+% data to an indexed GeoTIFF file. The TIFF meta-information, with the
+% exception of the values of the BitDepth, BitsPerSample, and
+% PhotometricInterpretation tags, is preserved.
+
+%%
+% Read the image from the |boston.tif| GeoTIFF file.
+RGB = geotiffread('boston.tif');
+
+%%
+% Use the MATLAB function, |rgb2ind|, to convert the RGB image to an
+% indexed image |X| using minimum variance quantization.
+[X, cmap] = rgb2ind(RGB, 65536);
+
+%%
+% Obtain the TIFF tag information using |imfinfo|.
+info = imfinfo('boston.tif');
+
+%%
+% Create a TIFF tags structure to preserve selected information from the
+% |info| structure.
+tags = struct( ...
+    'Compression',  info.Compression, ...
+    'RowsPerStrip', info.RowsPerStrip, ...
+    'XResolution',  info.XResolution, ...
+    'YResolution',  info.YResolution, ...
+    'ImageDescription', info.ImageDescription, ...
+    'DateTime',    info.DateTime, ...
+    'Copyright',   info.Copyright, ...
+    'Orientation', info.Orientation);
+
+%%
+% The values for the PlanarConfiguration and ResolutionUnit tags must be
+% numeric rather than string valued, as returned by |imfinfo|. You can set
+% these tags by using the constant properties from the Tiff class. For
+% example, here are the possible values for the PlanarConfiguration
+% constant property:
+disp(Tiff.PlanarConfiguration)
+
+%%
+% Use the string value from the |info| structure to obtain the desired
+% value.
+tags.PlanarConfiguration = ...
+    Tiff.PlanarConfiguration.(info.PlanarConfiguration);
+
+%%
+% Set the ResolutionUnit value in the same manner.
+tags.ResolutionUnit = Tiff.ResolutionUnit.(info.ResolutionUnit);
+
+%%
+% The Software tag is not set in the |boston.tif| file. However,
+% |geotiffwrite| will set the |Software| tag by default. To preserve the
+% information, set the value to the empty string which prevents the tag
+% from being written to the file.
+tags.Software = '';
+
+%%
+% Copy the GeoTIFF and referencing information from |boston.tif|.
+geoinfo = geotiffinfo('boston.tif');
+key = geoinfo.GeoTIFFTags.GeoKeyDirectoryTag;
+R = geoinfo.SpatialRef;
+
+%%
+% Write to the GeoTIFF file.
+filename = datafile('boston_indexed.tif');
+geotiffwrite(filename, X, cmap, R, ...
+    'GeoKeyDirectoryTag', key, 'TiffTags', tags);
+
+%%
+% View the indexed image.
+figure
+mapshow(filename)
+title('Boston - Indexed Image', 'FontWeight', 'bold')
+xlabel('MA Mainland State Plane easting, survey feet', 'FontWeight', 'bold')
+ylabel('MA Mainland State Plane northing, survey feet','FontWeight', 'bold')
+
+%%
+% Compare the information in the structures that should be equal by
+% creating an HTML table.
+info_rgb = imfinfo('boston.tif');
+info_indexed = imfinfo(filename);
+tagNames = fieldnames(tags);
+tagNames(strcmpi('Software', tagNames)) = [];
+names = [{'Height' 'Width'}, tagNames'];
+
+table = ' ';
+for k = 1:numel(names)
+    tableEntry = sprintf( ...
+        '<tr><td> %s </td><td> %s </td><td> %s </td></tr>', ...
+        names{k}, ...
+        num2str(info_rgb.(names{k})), ...
+        num2str(info_indexed.(names{k})));
+    table = [table tableEntry];  %#ok<*AGROW>
+end
+
+htmlTable_equal = [ ...
+    '<html><table border=1 cellpadding=1><tr>', ...
+    '<td><b>Fieldname</b></td>', ...
+    '<td><b>RGB Information</b></td>', ...
+    '<td><b>Indexed Information</b></td>', ...
+    '</tr>', table, '</tr></table></html>'];
+
+%%
+% Compare the information that should be different, since you converted an
+% RGB image to an indexed image by creating an HTML table.
+names = {'FileSize', 'ColorType', 'BitDepth', ...
+    'BitsPerSample', 'PhotometricInterpretation'};
+table = ' ';
+for k = 1:numel(names)
+    tableEntry = sprintf( ...
+        '<tr><td> %s </td><td> %s </td><td> %s </td></tr>', ...
+        names{k}, ...
+        num2str(info_rgb.(names{k})), ...
+        num2str(info_indexed.(names{k})));
+    table = [table tableEntry];  
+end
+
+htmlTable_notequal = [ ...
+    '<html><table border=1 cellpadding=1><tr>', ...
+    '<td><b>Fieldname</b></td>', ...
+    '<td><b>RGB Information</b></td>', ...
+    '<td><b>Indexed Information</b></td>', ...
+    '</tr>', table, '</tr></table></html>'];
+
+%%
+% View table of meta information expected to be equal.
+disp(htmlTable_equal);
+
+%%
+% View table of meta information expected to not be equal.
+disp(htmlTable_notequal);
+
+%% Cleanup: Remove Data Directory
+% Remove the temporary directory and data files.
+% rmdir(datadir, 's')
+
+%% Credits
+% boston.tif, boston_ovr.jpg:
+%
+%    Copyright GeoEye 
+%    Includes material copyrighted by GeoEye, all rights reserved. For more
+%    information, please call 1.703.480.7539 or visit http://www.geoeye.com 
+%
+%    For more information, run: 
+%    
+%    >> type boston.txt
+%    >> type boston_ovr.txt
+%
+% concord_orthow_w.tif, concord_ortho_e.tif:
+%
+%    Office of Geographic and Environmental Information (MassGIS),
+%    Commonwealth of Massachusetts  Executive Office of Environmental Affairs
+%    http://www.state.ma.us/mgis
+%
+%    For more information, run: 
+%    
+%    >> type concord_ortho.txt
+%
+% 9129CATD.ddf (and supporting files): 
+% 
+%    United States Geological Survey (USGS) 7.5-minute Digital Elevation
+%    Model (DEM) in Spatial Data Transfer Standard (SDTS) format for the
+%    Mt. Washington quadrangle, with elevation in meters.
+%    http://edc.usgs.gov/products/elevation/dem.html
+%
+%    For more information, run: 
+%    
+%    >> type 9129.txt
+%
+% sanfranciscos.dem.gz:
+%
+%    United States Geological Survey (USGS) 7.5-minute Digital Elevation
+%    Model (DEM) for the SAN FRANCISCO SOUTH, CA BIG BASIN DEM quadrangle,
+%    with elevation in feet.
+%
+%    For more information, run: 
+%    
+%    >> type sanfranciscos.txt
+%
+
+displayEndOfDemoMessage(mfilename)
+
+##### SOURCE END #####
+--></body></html>

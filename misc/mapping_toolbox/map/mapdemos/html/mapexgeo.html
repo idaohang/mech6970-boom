@@ -1,0 +1,178 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Creating Maps from Geographic (Latitude, Longitude) Data</title><meta name="generator" content="MATLAB 7.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2011-02-02"><meta name="DC.source" content="mapexgeo.m"><link rel="stylesheet" type="text/css" href="../../../matlab/demos/private/style.css"></head><body><div class="header"><div class="left"><a href="matlab:edit mapexgeo">Open mapexgeo.m in the Editor</a></div><div class="right"><a href="matlab:echodemo mapexgeo">Run in the Command Window</a></div></div><div class="content"><h1>Creating Maps from Geographic (Latitude, Longitude) Data</h1><!--introduction--><p>This gallery illustrates the range of maps that you can create using <tt>geoshow</tt>.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Geographic map 1: World Land Area</a></li><li><a href="#5">Geographic map 2: North America with Custom Colored States in the U.S.</a></li><li><a href="#9">Geographic map 3: Korea Elevation Grid</a></li><li><a href="#13">Geographic map 4: EGM96 Geoid Heights</a></li><li><a href="#18">Geographic map 5: Moon Albedo Image</a></li></ul></div><h2>Geographic map 1: World Land Area<a name="1"></a></h2><p>Create a worldmap and project and display world land areas.</p><pre class="codeinput">figure
+worldmap <span class="string">world</span>
+geoshow(<span class="string">'landareas.shp'</span>, <span class="string">'FaceColor'</span>, [0.5 1.0 0.5]);
+</pre><img vspace="5" hspace="5" src="mapexgeo_01.png" alt=""> <p>Project and display world land areas using a default Plate Carree projection.</p><pre class="codeinput">figure
+geoshow(<span class="string">'landareas.shp'</span>, <span class="string">'FaceColor'</span>, [0.5 1.0 0.5]);
+</pre><img vspace="5" hspace="5" src="mapexgeo_02.png" alt=""> <p>Note that the axes show positions in latitude and longitude but on an ordinary axes rather than a map axes.</p><pre class="codeinput">ismap
+</pre><pre class="codeoutput">
+ans =
+
+     0
+
+</pre><h2>Geographic map 2: North America with Custom Colored States in the U.S.<a name="5"></a></h2><p>Read the USA high resolution data.</p><pre class="codeinput">states = shaperead(<span class="string">'usastatehi'</span>, <span class="string">'UseGeoCoords'</span>, true);
+</pre><p>Create a SymbolSpec to display Alaska and Hawaii as red polygons.</p><pre class="codeinput">symbols = makesymbolspec(<span class="string">'Polygon'</span>, <span class="keyword">...</span>
+                        {<span class="string">'Name'</span>, <span class="string">'Alaska'</span>, <span class="string">'FaceColor'</span>, <span class="string">'red'</span>}, <span class="keyword">...</span>
+                        {<span class="string">'Name'</span>, <span class="string">'Hawaii'</span>, <span class="string">'FaceColor'</span>, <span class="string">'red'</span>});
+</pre><p>Create a worldmap of North America with Alaska and Hawaii in red, all other states in blue.</p><pre class="codeinput">figure
+worldmap(<span class="string">'na'</span>);
+geoshow(states, <span class="string">'SymbolSpec'</span>, symbols, <span class="keyword">...</span>
+                <span class="string">'DefaultFaceColor'</span>, <span class="string">'blue'</span>, <span class="keyword">...</span>
+                <span class="string">'DefaultEdgeColor'</span>, <span class="string">'black'</span>);
+axis <span class="string">off</span>
+</pre><img vspace="5" hspace="5" src="mapexgeo_03.png" alt=""> <h2>Geographic map 3: Korea Elevation Grid<a name="9"></a></h2><p>Load the Korea data grid and the land area boundary.</p><pre class="codeinput">load <span class="string">korea</span>
+S = shaperead(<span class="string">'landareas'</span>, <span class="string">'UseGeoCoords'</span>, true);
+</pre><p>Create a worldmap and project and display the Korea data grid as a texture map.</p><pre class="codeinput">figure;
+worldmap(map, refvec)
+geoshow(map, refvec, <span class="string">'DisplayType'</span>, <span class="string">'texturemap'</span>);
+demcmap(map)
+axis <span class="string">off</span>
+</pre><img vspace="5" hspace="5" src="mapexgeo_04.png" alt=""> <p>Overlay the land area boundary as a line.</p><pre class="codeinput">geoshow([S.Lat], [S.Lon], <span class="string">'Color'</span>, <span class="string">'black'</span>);
+</pre><img vspace="5" hspace="5" src="mapexgeo_05.png" alt=""> <h2>Geographic map 4: EGM96 Geoid Heights<a name="13"></a></h2><p>Project and display the EGM96 geoid heights as a texture map.</p><p>Create a figure with an Eckert projection and project and display the geoid heights as a texture map.</p><pre class="codeinput">load <span class="string">geoid</span>
+figure(<span class="string">'Renderer'</span>,<span class="string">'zbuffer'</span>)
+axesm <span class="string">eckert4</span>;
+framem; gridm;
+plabel; mlabel(<span class="string">'MlabelLocation'</span>,90);
+geoshow(geoid, geoidrefvec, <span class="string">'DisplayType'</span>, <span class="string">'texturemap'</span>);
+axis <span class="string">off</span>
+</pre><img vspace="5" hspace="5" src="mapexgeo_06.png" alt=""> <p>Create a colorbar and a title.</p><pre class="codeinput">hcb = colorbar(<span class="string">'horiz'</span>);
+set(get(hcb,<span class="string">'Xlabel'</span>),<span class="string">'String'</span>,<span class="string">'EGM96 geoid heights in meters'</span>)
+</pre><img vspace="5" hspace="5" src="mapexgeo_07.png" alt=""> <p>Mask out all the land.</p><pre class="codeinput">geoshow(<span class="string">'landareas.shp'</span>, <span class="string">'FaceColor'</span>, <span class="string">'black'</span>);
+</pre><img vspace="5" hspace="5" src="mapexgeo_08.png" alt=""> <h2>Geographic map 5: Moon Albedo Image<a name="18"></a></h2><p>Load the moon albedo image.</p><pre class="codeinput">load <span class="string">moonalb</span>
+</pre><p>Project and display the moon albedo image  using a default Plate Carree projection.</p><pre class="codeinput">figure(<span class="string">'Renderer'</span>, <span class="string">'zbuffer'</span>);
+geoshow(moonalb, moonalbrefvec)
+</pre><img vspace="5" hspace="5" src="mapexgeo_09.png" alt=""> <p>Project and display the moon albedo image as a texturemap in an orthographic projection.</p><pre class="codeinput">figure
+axesm <span class="string">ortho</span>
+geoshow(moonalb, moonalbrefvec, <span class="string">'DisplayType'</span>, <span class="string">'texturemap'</span>)
+colormap(gray(256))
+axis <span class="string">off</span>
+</pre><img vspace="5" hspace="5" src="mapexgeo_10.png" alt=""> <p class="footer">Copyright 1996-2011 The MathWorks, Inc.<br>
+          Published with MATLAB&reg; 7.12</p><p class="footer" id="trademarks">MATLAB and Simulink are registered trademarks of The MathWorks, Inc.  Please see <a href="http://www.mathworks.com/trademarks">www.mathworks.com/trademarks</a> for a list of other trademarks owned by The MathWorks, Inc.  Other product or brand names are trademarks or registered trademarks of their respective owners.</p></div><!--
+##### SOURCE BEGIN #####
+%% Creating Maps from Geographic (Latitude, Longitude) Data
+% This gallery illustrates the range of maps that you can create using
+% |geoshow|. 
+
+% Copyright 1996-2011 The MathWorks, Inc.
+% $Revision: 1.1.8.11.4.1 $  $Date: 2011/01/29 14:47:36 $
+
+%% Geographic map 1: World Land Area
+
+%%
+% Create a worldmap and project and display world land areas.
+figure
+worldmap world
+geoshow('landareas.shp', 'FaceColor', [0.5 1.0 0.5]);
+
+%%
+% Project and display world land areas using a default Plate Carree 
+% projection. 
+figure
+geoshow('landareas.shp', 'FaceColor', [0.5 1.0 0.5]);
+
+%%
+% Note that the axes show positions in latitude and longitude but on an
+% ordinary axes rather than a map axes.
+ismap
+
+%% Geographic map 2: North America with Custom Colored States in the U.S. 
+
+%%
+% Read the USA high resolution data.
+states = shaperead('usastatehi', 'UseGeoCoords', true);
+
+%%
+% Create a SymbolSpec to display Alaska and Hawaii as red polygons.
+symbols = makesymbolspec('Polygon', ...
+                        {'Name', 'Alaska', 'FaceColor', 'red'}, ...
+                        {'Name', 'Hawaii', 'FaceColor', 'red'});
+
+%%
+% Create a worldmap of North America with Alaska and Hawaii in red, 
+% all other states in blue.
+figure
+worldmap('na');
+geoshow(states, 'SymbolSpec', symbols, ...
+                'DefaultFaceColor', 'blue', ...
+                'DefaultEdgeColor', 'black');
+axis off
+
+
+%% Geographic map 3: Korea Elevation Grid
+
+%%
+% Load the Korea data grid and the land area boundary.
+load korea
+S = shaperead('landareas', 'UseGeoCoords', true);
+
+%%
+% Create a worldmap and project and display the Korea data grid as a 
+% texture map. 
+figure;
+worldmap(map, refvec)
+geoshow(map, refvec, 'DisplayType', 'texturemap');
+demcmap(map)
+axis off
+
+%%
+% Overlay the land area boundary as a line.
+geoshow([S.Lat], [S.Lon], 'Color', 'black');
+
+
+%% Geographic map 4: EGM96 Geoid Heights
+
+%%
+% Project and display the EGM96 geoid heights as a texture map.
+
+%%
+% Create a figure with an Eckert projection and project and display the
+% geoid heights as a texture map.
+load geoid
+figure('Renderer','zbuffer')
+axesm eckert4; 
+framem; gridm; 
+plabel; mlabel('MlabelLocation',90);
+geoshow(geoid, geoidrefvec, 'DisplayType', 'texturemap');
+axis off
+
+%%
+% Create a colorbar and a title.
+hcb = colorbar('horiz');
+set(get(hcb,'Xlabel'),'String','EGM96 geoid heights in meters')
+
+%%
+% Mask out all the land.
+geoshow('landareas.shp', 'FaceColor', 'black');  
+
+%% Geographic map 5: Moon Albedo Image
+
+%% 
+% Load the moon albedo image.
+load moonalb
+
+%% 
+% Project and display the moon albedo image  using a default Plate Carree
+% projection.
+figure('Renderer', 'zbuffer');
+geoshow(moonalb, moonalbrefvec)
+
+%%
+% Project and display the moon albedo image as a texturemap in an
+% orthographic projection.
+figure
+axesm ortho 
+geoshow(moonalb, moonalbrefvec, 'DisplayType', 'texturemap')
+colormap(gray(256))
+axis off
+
+displayEndOfDemoMessage(mfilename)
+
+##### SOURCE END #####
+--></body></html>

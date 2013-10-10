@@ -1,0 +1,597 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Un-Projecting a Digital Elevation Model (DEM)</title><meta name="generator" content="MATLAB 7.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2011-02-02"><meta name="DC.source" content="mapexunprojectdem.m"><link rel="stylesheet" type="text/css" href="../../../matlab/demos/private/style.css"></head><body><div class="header"><div class="left"><a href="matlab:edit mapexunprojectdem">Open mapexunprojectdem.m in the Editor</a></div><div class="right"><a href="matlab:echodemo mapexunprojectdem">Run in the Command Window</a></div></div><div class="content"><h1>Un-Projecting a Digital Elevation Model (DEM)</h1><!--introduction--><p>U.S. Geological Survey (USGS) 30-meter Digital Elevation Models (DEMs) are regular grids (raster data) that use the UTM coordinate system. Using such DEMs in applications may require reprojecting and resampling them. The following example shows how to convert a USGS DEM into a regular latitude-longitude grid having comparable spatial resolution. The approach it demonstrates can readily be applied to projected map coordinate systems other than UTM and to other DEMs and most types of regular data grids.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Step 1: Import the DEM and its Metadata</a></li><li><a href="#6">Step 2: Assign a Reference Ellipsoid Vector</a></li><li><a href="#10">Step 3: Determine which UTM Zone to Use and Construct a Map Axes</a></li><li><a href="#19">Step 4: Display the Original DEM on the Map Axes</a></li><li><a href="#22">Step 5: Define the Output Latitude-Longitude Grid</a></li><li><a href="#29">Step 6: Map Each Output Grid Point Location to UTM X-Y</a></li><li><a href="#32">Step 7: Resample the Original DEM</a></li><li><a href="#35">Credits</a></li></ul></div><h2>Step 1: Import the DEM and its Metadata<a name="1"></a></h2><p>This example uses a USGS DEM for a quadrangle 7.5-arc-minutes square located in the White Mountains of New Hampshire, USA.  The data set is stored in the Spatial Data Transfer Standard (STDS) format and is located in the directory</p><pre class="codeinput">fullfile(matlabroot,<span class="string">'toolbox'</span>,<span class="string">'map'</span>,<span class="string">'mapdemos'</span>);
+</pre><p>This directory is on the MATLAB&reg; path if the Mapping Toolbox&#8482; is installed, so it suffices to refer to the data set by filename alone.</p><pre class="codeinput">stdsfilename = <span class="string">'9129CATD.ddf'</span>;
+</pre><p>You can use the <tt>sdtsinfo</tt> command to obtain basic metadata about the DEM.</p><pre class="codeinput">info = sdtsinfo(stdsfilename)
+</pre><pre class="codeoutput">
+info = 
+
+            Filename: '9129CATD.DDF'
+               Title: 'MOUNT WASHINGTON, NH - 24000'
+           ProfileID: 'SDTS RASTER PROFILE'
+      ProfileVersion: 'DRAFT VERSION JULY 1997'
+             MapDate: ''
+    DataCreationDate: '19980811'
+     HorizontalDatum: 'North American 1927'
+        MapRefSystem: 'UTM'
+          ZoneNumber: 19
+         XResolution: 30
+         YResolution: 30
+        NumberOfRows: 472
+        NumberOfCols: 345
+     HorizontalUnits: 'METERS'
+       VerticalUnits: 'METERS'
+        MinElevation: 367
+        MaxElevation: 1909
+
+</pre><p>and you can use <tt>sdtsdemread</tt> to import the DEM into a 2-D MATLAB array (<tt>Z</tt>), along with its referencing matrix (<tt>R</tt>).</p><pre class="codeinput">[Z,R] = sdtsdemread(stdsfilename);
+
+R
+</pre><pre class="codeoutput">
+R =
+
+  1.0e+006 *
+
+         0   -0.0000
+    0.0000         0
+    0.3104    4.9161
+
+</pre><p>is a 3-by-2 matrix that maps the row and column subscripts of <tt>Z</tt> to map x and y (UTM "eastings" and "northings" in this case) such that</p><pre>     [x y] = [row col 1] * R.</pre><p>See functions <tt>pix2map</tt> and <tt>map2pix</tt>.</p><h2>Step 2: Assign a Reference Ellipsoid Vector<a name="6"></a></h2><p>The value of</p><pre class="codeinput">info.HorizontalDatum
+</pre><pre class="codeoutput">
+ans =
+
+North American 1927
+
+</pre><p>indicates use of the North American Datum of 1927.  The Clarke 1866 ellipsoid is the standard reference ellipsoid for this datum.</p><pre class="codeinput">ellipsoidName = <span class="string">'clarke66'</span>;
+</pre><p>You can also check the value of the <tt>HorizontalUnits</tt> field,</p><pre class="codeinput">mapUnits = info.HorizontalUnits;
+</pre><p>which indicates that the horizontal coordinates of the DEM are in units of meters, and provide both pieces of information to the <tt>almanac</tt> function.</p><pre class="codeinput">clarke66 = almanac(<span class="string">'earth'</span>, ellipsoidName, mapUnits)
+</pre><pre class="codeoutput">
+clarke66 =
+
+  1.0e+006 *
+
+    6.3782    0.0000
+
+</pre><h2>Step 3: Determine which UTM Zone to Use and Construct a Map Axes<a name="10"></a></h2><p>From the <tt>MapRefSystem</tt> field in the SDTS info struct,</p><pre class="codeinput">info.MapRefSystem
+</pre><pre class="codeoutput">
+ans =
+
+UTM
+
+</pre><p>you can tell that the DEM is gridded in a Universal Transverse Mercator (UTM) coordinate system.</p><p>The 'ZoneNumber' field</p><pre class="codeinput">info.ZoneNumber
+</pre><pre class="codeoutput">
+ans =
+
+    19
+
+</pre><p>indicates which longitudinal UTM zone was used.  The Mapping Toolbox <tt>utm</tt> function, however, also requires a latitudinal zone; this is not provided in the metadata, but you can derive it from the referencing matrix and grid dimensions.</p><p>UTM comprises 60 longitudinal zones each spanning 6 degrees of longitude and 20 latitudinal zones ranging from 80 degrees South to 84 degrees North.  Longitudinal zones are designated by numbers ranging from 1 to 60.  Latitudinal zones are designated by letters ranging from C to X (omitting I and O).  In a given hemisphere (Southern or Northern), all the latitudinal zones occupy a shared coordinate system.  Aside from determining the hemisphere, the toolbox merely uses latitudinal zone to help set the default map limits.</p><p>So, you can start by using the first latitudinal zone in the Northern Hemisphere, zone N (for latitudes between zero and 8 degrees North) as a provisional zone.</p><pre class="codeinput">longitudinalZone = sprintf(<span class="string">'%d'</span>,info.ZoneNumber);
+provisionalLatitudinalZone = <span class="string">'N'</span>;
+provisionalZone = [longitudinalZone provisionalLatitudinalZone]
+</pre><pre class="codeoutput">
+provisionalZone =
+
+19N
+
+</pre><p>Then, construct a UTM axes based on this provisional zone</p><pre class="codeinput">figure(<span class="string">'Color'</span>,<span class="string">'white'</span>)
+ax = axesm(<span class="string">'mapprojection'</span>, <span class="string">'utm'</span>, <span class="keyword">...</span>
+    <span class="string">'zone'</span>, provisionalZone, <span class="string">'geoid'</span>, clarke66);
+axis <span class="string">off</span>; gridm; mlabel <span class="string">on</span>; plabel <span class="string">on</span>; framem <span class="string">on</span>
+</pre><img vspace="5" hspace="5" src="mapexunprojectdem_01.png" alt=""> <p>To find the actual zone, you can locate the center of the DEM in UTM coordinates,</p><pre class="codeinput">[xCenter, yCenter] = pix2map(R, <span class="keyword">...</span>
+    (1 + size(Z,1))/2, (1 + size(Z,2))/2)
+</pre><pre class="codeoutput">
+xCenter =
+
+  3.1556e+005
+
+
+yCenter =
+
+  4.9090e+006
+
+</pre><p>then convert latitude-longitude, taking advantage of the fact that xCenter and yCenter will be the same in zone 19N as they are into the actual zone.</p><pre class="codeinput">[latCenter, lonCenter] = minvtran(xCenter, yCenter)
+</pre><pre class="codeoutput">
+latCenter =
+
+   44.3125
+
+
+lonCenter =
+
+  -71.3126
+
+</pre><p>Then, with the <tt>utmzone</tt> function, you can use the latitude-longitude coordinates to determine the actual UTM zone for the DEM.</p><pre class="codeinput">actualZone = utmzone(latCenter, lonCenter)
+</pre><pre class="codeoutput">
+actualZone =
+
+19T
+
+</pre><p>Finally, use the result to reset the zone of the axes constructed earlier.</p><pre class="codeinput">setm(ax, <span class="string">'zone'</span>, actualZone)
+</pre><img vspace="5" hspace="5" src="mapexunprojectdem_02.png" alt=""> <p>Note: if you can visually place the approximately location of New Hampshire on a world map, then you can confirm this result with the <tt>utmzoneui</tt> GUI.</p><pre>  utmzoneui(actualZone)</pre><h2>Step 4: Display the Original DEM on the Map Axes<a name="19"></a></h2><p>Use <tt>mapshow</tt> (rather than <tt>geoshow</tt> or <tt>meshm</tt>) to display the DEM on the map axes because the data are gridded in map (x-y) coordinates.</p><pre class="codeinput">mapshow(Z, R, <span class="string">'DisplayType'</span>, <span class="string">'texturemap'</span>)
+demcmap(Z)
+</pre><img vspace="5" hspace="5" src="mapexunprojectdem_03.png" alt=""> <p>The DEM covers such a small part of this map that it may be hard to see (look between 44 and 44 degrees North and 72 and 71 degrees West), because the map limits are set to cover the entire UTM zone.  You can reset them (as well as the map grid and label parameters) to get a closer look.</p><pre class="codeinput">setm(ax, <span class="string">'MapLatLimit'</span>, [44.2 44.4], <span class="string">'MapLonLimit'</span>, [-71.4 -71.2])
+setm(ax, <span class="string">'MLabelLocation'</span>, 0.05, <span class="string">'MLabelRound'</span>, -2)
+setm(ax, <span class="string">'PLabelLocation'</span>, 0.05, <span class="string">'PLabelRound'</span>, -2)
+setm(ax, <span class="string">'PLineLocation'</span>, 0.025, <span class="string">'MLineLocation'</span>, 0.025)
+</pre><img vspace="5" hspace="5" src="mapexunprojectdem_04.png" alt=""> <p>When it is viewed at this larger scale, narrow wedge-shaped areas of uniform color appear along the edge of the grid.  These are places where <tt>Z</tt> contains the value NaN, which indicates the absence of actual data. By default they receive the first color in the color table, which in this case is dark green.  These null-data areas arise because although the DEM is gridded in UTM coordinates, its data limits are defined by a latitude-longitude quadrangle.  The narrow angle of each wedge corresponds to the non-zero "grid declination" of the UTM coordinate system in this part of the zone. (Lines of constant x run precisely north-south only along the central meridian of the zone.  Elsewhere, they follow a slight angle relative to the local meridians.)</p><h2>Step 5: Define the Output Latitude-Longitude Grid<a name="22"></a></h2><p>The next step is to define a regularly-spaced set of grid points in latitude-longitude that covers the area within the DEM at about the same spatial resolution as the original data set.</p><p>First, you need to determine how the latitude changes between rows in the input DEM (i.e., by moving northward by 30 meters).</p><pre class="codeinput">az = 0;
+rng = info.YResolution;  <span class="comment">% In meters, consistent with clarke66</span>
+[latNorth lonNorth] = reckon(latCenter, lonCenter, rng, az, clarke66)
+dLat = latNorth - latCenter   <span class="comment">% In degrees</span>
+</pre><pre class="codeoutput">
+latNorth =
+
+   44.3128
+
+
+lonNorth =
+
+  -71.3126
+
+
+dLat =
+
+  2.6998e-004
+
+</pre><p>The actual spacing can be rounded slightly to define the grid spacing to be used for the output (latitude-longitude) grid.</p><pre class="codeinput">gridSpacing = 2.5e-4;   <span class="comment">% In Degrees</span>
+</pre><p>To set the extent of the output (latitude-longitude) grid, start by finding the corners of the DEM in UTM map coordinates.</p><pre class="codeinput">bbox = mapbbox(R, size(Z))
+xCorners = bbox([1 1 2 2],1)
+yCorners = bbox([1 2 2 1],2)
+</pre><pre class="codeoutput">
+bbox =
+
+  1.0e+006 *
+
+    0.3104    4.9019
+    0.3207    4.9161
+
+
+xCorners =
+
+  1.0e+005 *
+
+    3.1038
+    3.1038
+    3.2073
+    3.2073
+
+
+yCorners =
+
+  1.0e+006 *
+
+    4.9019
+    4.9161
+    4.9161
+    4.9019
+
+</pre><p>Then convert the corners to latitude-longitude.  Display the latitude-longitude corners on the map (via the UTM projection) to check that the results are reasonable.</p><pre class="codeinput">[latCorners, lonCorners] = minvtran(xCorners, yCorners)
+geoshow(latCorners, lonCorners, <span class="string">'DisplayType'</span>, <span class="string">'polygon'</span>,<span class="keyword">...</span>
+    <span class="string">'FaceColor'</span>, <span class="string">'none'</span>, <span class="string">'EdgeColor'</span>, <span class="string">'red'</span>)
+</pre><pre class="codeoutput">
+latCorners =
+
+   44.2475
+   44.3749
+   44.3775
+   44.2501
+
+
+lonCorners =
+
+  -71.3749
+  -71.3800
+  -71.2502
+  -71.2454
+
+</pre><img vspace="5" hspace="5" src="mapexunprojectdem_05.png" alt=""> <p>Next, round outward to define an output latitude-longitude bounding box that fully encloses the DEM and aligns with multiples of the grid spacing.</p><pre class="codeinput">latMin = gridSpacing * floor(min(latCorners)/gridSpacing)
+lonMin = gridSpacing * floor(min(lonCorners)/gridSpacing)
+latMax = gridSpacing * ceil( max(latCorners)/gridSpacing);
+lonMax = gridSpacing * ceil( max(lonCorners)/gridSpacing);
+
+nRows = ceil((latMax - latMin)/gridSpacing)
+nCols = ceil((lonMax - lonMin)/gridSpacing)
+
+latMax = latMin + nRows * gridSpacing
+lonMax = lonMin + nCols * gridSpacing
+
+geoshow([latMin, latMax, latMax, latMin],<span class="keyword">...</span>
+        [lonMin, lonMin, lonMax, lonMax],<span class="keyword">...</span>
+        <span class="string">'DisplayType'</span>, <span class="string">'polygon'</span>,<span class="keyword">...</span>
+        <span class="string">'FaceColor'</span>, <span class="string">'none'</span>, <span class="string">'EdgeColor'</span>, <span class="string">'blue'</span>)
+</pre><pre class="codeoutput">
+latMin =
+
+   44.2475
+
+
+lonMin =
+
+  -71.3803
+
+
+nRows =
+
+   521
+
+
+nCols =
+
+   541
+
+
+latMax =
+
+   44.3777
+
+
+lonMax =
+
+  -71.2450
+
+</pre><img vspace="5" hspace="5" src="mapexunprojectdem_06.png" alt=""> <p>Finally, construct a referencing matrix for the output grid.  It supports transformations between latitude-longitude and the row and column subscripts.</p><pre class="codeinput">Rlatlon = makerefmat(<span class="string">'RasterSize'</span>, [nRows nCols], <span class="keyword">...</span>
+    <span class="string">'Latlim'</span>, [latMin latMax], <span class="string">'Lonlim'</span>, [lonMin lonMax])
+</pre><pre class="codeoutput">
+Rlatlon =
+
+         0    0.0002
+    0.0002         0
+  -71.3804   44.2474
+
+</pre><p><tt>Rlatlon</tt>, <tt>nRows</tt>, and <tt>nCols</tt> fully define the number and location of each sample point in the output grid.</p><h2>Step 6: Map Each Output Grid Point Location to UTM X-Y<a name="29"></a></h2><p>Finally, you're ready to make use of the map projection, applying it to the location of each point in the output grid.  First compute the latitudes and longitudes of those points, stored in 2-D arrays.</p><pre class="codeinput">[lon, lat] = pixcenters(Rlatlon, nRows, nCols, <span class="string">'makegrid'</span>);
+</pre><p>Then apply the projection to each latitude-longitude pair, arrays of UTM x-y locations having the same shape and size as the latitude-longitude arrays.</p><pre class="codeinput">[XI, YI] = mfwdtran(lat, lon);
+</pre><p>At this point, <tt>XI(i,j)</tt> and <tt>YI(i,j)</tt> specify the UTM coordinate of the grid point corresponding to the i-th row and j-th column of the output grid.</p><h2>Step 7: Resample the Original DEM<a name="32"></a></h2><p>The final step is to use use the MATLAB <tt>interp2</tt> function to perform bilinear resampling.</p><p>At this stage, the value of projecting from the latitude-longitude grid into the UTM map coordinate system becomes evident: it means that the resampling can take place in the regular X-Y grid, making <tt>interp2</tt> applicable.  The reverse approach, un-projecting each (X,Y) point into latitude-longitude, might seem more intuitive but it would result in an irregular array of points to be interpolated -- a much harder task, requiring use of the far more costly <tt>griddata</tt> function or some rough equivalent.</p><pre class="codeinput">[X,Y] = pixcenters(R, size(Z), <span class="string">'makegrid'</span>);
+method = <span class="string">'bilinear'</span>;
+extrapval = NaN;
+Zlatlon = interp2(X, Y, Z, XI, YI, method, extrapval);
+</pre><p>View the resampled DEM in an un-projected axes, with latitude as Y and longitude as X, noting the NaN-filled areas along the edges.</p><pre class="codeinput">figure
+mapshow(Zlatlon, Rlatlon, <span class="string">'DisplayType'</span>, <span class="string">'texturemap'</span>)
+demcmap(Z)
+</pre><img vspace="5" hspace="5" src="mapexunprojectdem_07.png" alt=""> <p>View the result in the projected axes using <tt>geoshow</tt>, which will re-project it on the fly.  Notice that it fills the blue rectangle, which is aligned with lines of latitude and longitude.  (In contrast, the red rectangle, which outlines the original DEM, aligns with UTM x and y.) Also notice NaN-filled regions along the edges of the grid.  The boundaries of these regions appear slightly jagged, at the level of a single grid spacing, due to round-off effects during interpolation.</p><pre class="codeinput">figure(get(ax,<span class="string">'Parent'</span>))
+geoshow(Zlatlon, Rlatlon, <span class="string">'DisplayType'</span>, <span class="string">'texturemap'</span>)
+</pre><img vspace="5" hspace="5" src="mapexunprojectdem_08.png" alt=""> <h2>Credits<a name="35"></a></h2><p>9129CATD.ddf (and supporting files):</p><pre>  United States Geological Survey (USGS) 7.5-minute Digital Elevation
+  Model (DEM) in Spatial Data Transfer Standard (SDTS) format for the
+  Mt. Washington quadrangle, with elevation in meters.
+  http://edc.usgs.gov/products/elevation/dem.html</pre><pre>  For more information, run:</pre><pre>  &gt;&gt; type 9129.txt</pre><p class="footer">Copyright 2005-2011 The MathWorks, Inc.<br>
+          Published with MATLAB&reg; 7.12</p><p class="footer" id="trademarks">MATLAB and Simulink are registered trademarks of The MathWorks, Inc.  Please see <a href="http://www.mathworks.com/trademarks">www.mathworks.com/trademarks</a> for a list of other trademarks owned by The MathWorks, Inc.  Other product or brand names are trademarks or registered trademarks of their respective owners.</p></div><!--
+##### SOURCE BEGIN #####
+%% Un-Projecting a Digital Elevation Model (DEM)
+%
+% U.S. Geological Survey (USGS) 30-meter Digital Elevation Models (DEMs)
+% are regular grids (raster data) that use the UTM coordinate system. Using
+% such DEMs in applications may require reprojecting and resampling them.
+% The following example shows how to convert a USGS DEM into a regular
+% latitude-longitude grid having comparable spatial resolution. The
+% approach it demonstrates can readily be applied to projected map
+% coordinate systems other than UTM and to other DEMs and most types of
+% regular data grids.
+
+% Copyright 2005-2011 The MathWorks, Inc. 
+% $Revision: 1.1.6.4.8.1 $  $Date: 2011/01/29 14:47:37 $
+
+%% Step 1: Import the DEM and its Metadata
+%
+% This example uses a USGS DEM for a quadrangle 7.5-arc-minutes square
+% located in the White Mountains of New Hampshire, USA.  The data set is
+% stored in the Spatial Data Transfer Standard (STDS) format and is
+% located in the directory
+
+fullfile(matlabroot,'toolbox','map','mapdemos');
+
+%%
+% This directory is on the MATLAB(R) path if the Mapping Toolbox(TM) is installed,
+% so it suffices to refer to the data set by filename alone.
+
+stdsfilename = '9129CATD.ddf';
+
+%%
+% You can use the |sdtsinfo| command to obtain basic metadata about the
+% DEM.
+
+info = sdtsinfo(stdsfilename)
+
+%%
+% and you can use |sdtsdemread| to import the DEM into a 2-D MATLAB array
+% (|Z|), along with its referencing matrix (|R|).
+
+[Z,R] = sdtsdemread(stdsfilename);
+
+R
+
+%%
+% is a 3-by-2 matrix that maps the row and column subscripts of |Z| to map
+% x and y (UTM "eastings" and "northings" in this case) such that
+%
+%       [x y] = [row col 1] * R.
+%
+% See functions |pix2map| and |map2pix|.
+
+%% Step 2: Assign a Reference Ellipsoid Vector
+%
+% The value of
+
+info.HorizontalDatum
+
+%%
+% indicates use of the North American Datum of 1927.  The Clarke 1866
+% ellipsoid is the standard reference ellipsoid for this datum.
+
+ellipsoidName = 'clarke66';
+
+%%
+% You can also check the value of the |HorizontalUnits| field,
+
+mapUnits = info.HorizontalUnits;
+
+%% 
+% which indicates that the horizontal coordinates of the DEM are in units of
+% meters, and provide both pieces of information to the |almanac| function.
+
+clarke66 = almanac('earth', ellipsoidName, mapUnits)
+
+
+%% Step 3: Determine which UTM Zone to Use and Construct a Map Axes
+%
+% From the |MapRefSystem| field in the SDTS info struct,
+
+info.MapRefSystem
+
+%%
+% you can tell that the DEM is gridded in a Universal Transverse Mercator
+% (UTM) coordinate system.
+%
+% The 'ZoneNumber' field
+
+info.ZoneNumber
+
+%%
+% indicates which longitudinal UTM zone was used.  The Mapping Toolbox
+% |utm| function, however, also requires a latitudinal zone; this is not
+% provided in the metadata, but you can derive it from the referencing
+% matrix and grid dimensions.
+%
+% UTM comprises 60 longitudinal zones each spanning 6 degrees of longitude
+% and 20 latitudinal zones ranging from 80 degrees South to 84 degrees
+% North.  Longitudinal zones are designated by numbers ranging from 1 to
+% 60.  Latitudinal zones are designated by letters ranging from C to X
+% (omitting I and O).  In a given hemisphere (Southern or Northern), all
+% the latitudinal zones occupy a shared coordinate system.  Aside from
+% determining the hemisphere, the toolbox merely uses latitudinal zone to
+% help set the default map limits.
+%
+% So, you can start by using the first latitudinal zone in the Northern
+% Hemisphere, zone N (for latitudes between zero and 8 degrees North) as a
+% provisional zone.
+
+longitudinalZone = sprintf('%d',info.ZoneNumber);
+provisionalLatitudinalZone = 'N';
+provisionalZone = [longitudinalZone provisionalLatitudinalZone]
+
+%%
+% Then, construct a UTM axes based on this provisional zone
+
+figure('Color','white')
+ax = axesm('mapprojection', 'utm', ...
+    'zone', provisionalZone, 'geoid', clarke66);
+axis off; gridm; mlabel on; plabel on; framem on
+
+%%
+% To find the actual zone, you can locate the center of the DEM in UTM
+% coordinates,
+
+[xCenter, yCenter] = pix2map(R, ...
+    (1 + size(Z,1))/2, (1 + size(Z,2))/2)
+
+%%
+% then convert latitude-longitude, taking advantage of the fact that
+% xCenter and yCenter will be the same in zone 19N as they are into the
+% actual zone.
+
+[latCenter, lonCenter] = minvtran(xCenter, yCenter)
+
+%%
+% Then, with the |utmzone| function, you can use the latitude-longitude
+% coordinates to determine the actual UTM zone for the DEM.
+
+actualZone = utmzone(latCenter, lonCenter)
+
+%%
+% Finally, use the result to reset the zone of the axes constructed
+% earlier.
+
+setm(ax, 'zone', actualZone)
+
+%%
+% Note: if you can visually place the approximately location of New
+% Hampshire on a world map, then you can confirm this result with the
+% |utmzoneui| GUI.
+%
+%    utmzoneui(actualZone)
+
+
+%% Step 4: Display the Original DEM on the Map Axes
+%
+% Use |mapshow| (rather than |geoshow| or |meshm|) to display the DEM on
+% the map axes because the data are gridded in map (x-y) coordinates.
+
+mapshow(Z, R, 'DisplayType', 'texturemap')
+demcmap(Z)
+
+%%
+% The DEM covers such a small part of this map that it may be hard to see
+% (look between 44 and 44 degrees North and 72 and 71 degrees West),
+% because the map limits are set to cover the entire UTM zone.  You can
+% reset them (as well as the map grid and label parameters) to get a closer
+% look.
+
+setm(ax, 'MapLatLimit', [44.2 44.4], 'MapLonLimit', [-71.4 -71.2])
+setm(ax, 'MLabelLocation', 0.05, 'MLabelRound', -2)
+setm(ax, 'PLabelLocation', 0.05, 'PLabelRound', -2)
+setm(ax, 'PLineLocation', 0.025, 'MLineLocation', 0.025)
+
+%%
+% When it is viewed at this larger scale, narrow wedge-shaped areas of
+% uniform color appear along the edge of the grid.  These are places where
+% |Z| contains the value NaN, which indicates the absence of actual data.
+% By default they receive the first color in the color table, which in this
+% case is dark green.  These null-data areas arise because although the DEM
+% is gridded in UTM coordinates, its data limits are defined by a
+% latitude-longitude quadrangle.  The narrow angle of each wedge
+% corresponds to the non-zero "grid declination" of the UTM coordinate
+% system in this part of the zone. (Lines of constant x run precisely
+% north-south only along the central meridian of the zone.  Elsewhere, they
+% follow a slight angle relative to the local meridians.)
+
+
+%% Step 5: Define the Output Latitude-Longitude Grid
+%
+% The next step is to define a regularly-spaced set of grid points in
+% latitude-longitude that covers the area within the DEM at about
+% the same spatial resolution as the original data set.
+%
+% First, you need to determine how the latitude changes between rows in the
+% input DEM (i.e., by moving northward by 30 meters).
+
+az = 0;
+rng = info.YResolution;  % In meters, consistent with clarke66
+[latNorth lonNorth] = reckon(latCenter, lonCenter, rng, az, clarke66)
+dLat = latNorth - latCenter   % In degrees
+
+%%
+% The actual spacing can be rounded slightly to define the grid spacing to
+% be used for the output (latitude-longitude) grid.
+
+gridSpacing = 2.5e-4;   % In Degrees
+
+%%
+% To set the extent of the output (latitude-longitude) grid, start by
+% finding the corners of the DEM in UTM map coordinates.
+bbox = mapbbox(R, size(Z))
+xCorners = bbox([1 1 2 2],1)
+yCorners = bbox([1 2 2 1],2)
+
+%%
+% Then convert the corners to latitude-longitude.  Display the
+% latitude-longitude corners on the map (via the UTM projection) to check
+% that the results are reasonable.
+
+[latCorners, lonCorners] = minvtran(xCorners, yCorners)
+geoshow(latCorners, lonCorners, 'DisplayType', 'polygon',...
+    'FaceColor', 'none', 'EdgeColor', 'red')
+
+%%
+% Next, round outward to define an output latitude-longitude bounding box
+% that fully encloses the DEM and aligns with multiples of the grid
+% spacing.
+
+latMin = gridSpacing * floor(min(latCorners)/gridSpacing)
+lonMin = gridSpacing * floor(min(lonCorners)/gridSpacing)
+latMax = gridSpacing * ceil( max(latCorners)/gridSpacing);
+lonMax = gridSpacing * ceil( max(lonCorners)/gridSpacing);
+
+nRows = ceil((latMax - latMin)/gridSpacing)
+nCols = ceil((lonMax - lonMin)/gridSpacing)
+
+latMax = latMin + nRows * gridSpacing
+lonMax = lonMin + nCols * gridSpacing
+
+geoshow([latMin, latMax, latMax, latMin],...
+        [lonMin, lonMin, lonMax, lonMax],...
+        'DisplayType', 'polygon',...
+        'FaceColor', 'none', 'EdgeColor', 'blue') 
+    
+%%
+% Finally, construct a referencing matrix for the output grid.  It supports
+% transformations between latitude-longitude and the row and column
+% subscripts.
+
+Rlatlon = makerefmat('RasterSize', [nRows nCols], ...
+    'Latlim', [latMin latMax], 'Lonlim', [lonMin lonMax])
+
+%%
+% |Rlatlon|, |nRows|, and |nCols| fully define the number and location of
+% each sample point in the output grid.
+
+%% Step 6: Map Each Output Grid Point Location to UTM X-Y
+%
+% Finally, you're ready to make use of the map projection, applying it to
+% the location of each point in the output grid.  First compute the
+% latitudes and longitudes of those points, stored in 2-D arrays.
+
+[lon, lat] = pixcenters(Rlatlon, nRows, nCols, 'makegrid');
+
+%%
+% Then apply the projection to each latitude-longitude pair, arrays of UTM
+% x-y locations having the same shape and size as the latitude-longitude
+% arrays.
+
+[XI, YI] = mfwdtran(lat, lon);
+
+%%
+% At this point, |XI(i,j)| and |YI(i,j)| specify the UTM coordinate of the
+% grid point corresponding to the i-th row and j-th column of the output
+% grid.
+
+
+%% Step 7: Resample the Original DEM
+%
+% The final step is to use use the MATLAB |interp2| function to perform
+% bilinear resampling.
+%
+% At this stage, the value of projecting from the latitude-longitude grid
+% into the UTM map coordinate system becomes evident: it means that the
+% resampling can take place in the regular X-Y grid, making |interp2|
+% applicable.  The reverse approach, un-projecting each (X,Y) point into
+% latitude-longitude, might seem more intuitive but it would result in an
+% irregular array of points to be interpolated REPLACE_WITH_DASH_DASH a much harder task,
+% requiring use of the far more costly |griddata| function or some rough
+% equivalent.
+
+[X,Y] = pixcenters(R, size(Z), 'makegrid');
+method = 'bilinear';
+extrapval = NaN;
+Zlatlon = interp2(X, Y, Z, XI, YI, method, extrapval);
+
+%%
+% View the resampled DEM in an un-projected axes, with latitude as Y and
+% longitude as X, noting the NaN-filled areas along the edges.
+
+figure
+mapshow(Zlatlon, Rlatlon, 'DisplayType', 'texturemap')
+demcmap(Z)
+
+%%
+% View the result in the projected axes using |geoshow|, which will
+% re-project it on the fly.  Notice that it fills the blue rectangle, which
+% is aligned with lines of latitude and longitude.  (In contrast, the red
+% rectangle, which outlines the original DEM, aligns with UTM x and y.)
+% Also notice NaN-filled regions along the edges of the grid.  The
+% boundaries of these regions appear slightly jagged, at the level of a
+% single grid spacing, due to round-off effects during interpolation.
+
+figure(get(ax,'Parent'))
+geoshow(Zlatlon, Rlatlon, 'DisplayType', 'texturemap')
+
+%% Credits
+%
+% 9129CATD.ddf (and supporting files): 
+% 
+%    United States Geological Survey (USGS) 7.5-minute Digital Elevation
+%    Model (DEM) in Spatial Data Transfer Standard (SDTS) format for the
+%    Mt. Washington quadrangle, with elevation in meters.
+%    http://edc.usgs.gov/products/elevation/dem.html
+%
+%    For more information, run: 
+%    
+%    >> type 9129.txt
+%
+
+
+displayEndOfDemoMessage(mfilename)
+
+##### SOURCE END #####
+--></body></html>

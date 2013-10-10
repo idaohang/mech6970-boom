@@ -1,0 +1,45 @@
+The binary file
+
+   gshhs_c.b.gz
+
+is a GNU zipped file of the binary file gshhs_c.b. The binary file
+
+   gshhs_c.b
+
+contains the lowest resolution set of shorelines from Version 1.3 of the
+Global Self-Consistent Hierarchical High-Resolution Shoreline (GSHHS)
+data set.  The GSHHS data file is provided in the Mapping Toolbox courtesy
+of Dr. Paul Wessel of the University of Hawaii and Dr. Walter H. F. Smith
+of NOAA.  Wessel and Smith amalgamated the GSHHS from public domain data
+bases, including the World Vector Shoreline from the U.S. Defense Mapping
+Agency (DMA) -- now the U.S. National Geospatial-Intelligence Agency (NGA).  
+With extensive processing they removed inconsistencies, such as erratic
+points and crossing segments, and assembled the data into closed polygons.  
+GSHHS comprises a full-resolution set of shorelines and four reduced-
+resolution sets:  high, intermediate, low, and crude.  The last, lowest-
+resolution, shoreline set is provided here.  It is the result of applying
+the Douglas-Peuker algorithm to the full-resolution data with a
+tolerance of 25 kilometers.
+
+The shoreline vectors are in latitude-longitude.  The horizontal datum
+is the World Geodetic System of 1984 (WGS 84).
+
+The full GSHHS data set is available from the National Geophysical Data
+Center (NGDC), Boulder, Colorado, USA.  For more information on GSHHS
+and/or to obtain the higher-resolution layers see the following URLs
+
+  http://www.ngdc.noaa.gov/mgg/shorelines/gshhs.html
+
+  http://www.soest.hawaii.edu/wessel/gshhs/gshhs.html
+
+or follow the links from 
+ 
+  http://www.mathworks.com/support/tech-notes/2100/2101.html
+
+
+Reference
+---------
+Wessel, P., and W. H. F. Smith, 1996, A global self-consistent,
+hierarchical, high-resolution shoreline database, Journal of Geophysical
+Research, Vol. 101, pp. 8741-8743.
+  

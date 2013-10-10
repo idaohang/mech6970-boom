@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- $Revision: 1.1.6.14 $  $Date: 2010/11/17 11:25:01 $ -->
+<demos>
+  <name>Mapping</name>
+   <type>toolbox</type>
+   <icon>$toolbox/matlab/icons/matlabicon.gif</icon>
+   <description isCdata="no">
+<p>The Mapping Toolbox(TM) product provides a comprehensive set of functions and graphical user interfaces for building map displays and performing  geospatial data analysis in MATLAB(R). The toolbox supports key mapping and geospatial data analysis, manipulation, and visualization tasks that are useful in applications such as earth and planetary scientific  research, oil and gas exploration, environmental monitoring, insurance  risk management, aerospace, defense, and security.</p>
+   </description>
+   
+   <demosection>
+   <label>Creating Map Displays</label>
+     <demoitem>
+   	  <label>Creating Maps from Geographic (Latitude, Longitude) Data</label>
+   	  <type>M-file</type>
+   	  <source>mapexgeo</source>
+     </demoitem>
+
+     <demoitem>
+   	  <label>Creating Maps from Data in a Projected x-y System</label>
+   	  <type>M-file</type>
+        <source>mapexmap</source>
+     </demoitem>   
+
+     <demoitem>
+        <label>Creating an Interactive Map for Selecting Point Features</label>
+   	  <type>M-file</type>
+        <source>mapexfindcity</source>
+     </demoitem>
+   </demosection>
+
+   <demosection>
+   <label>Using Geospatial Analysis Tools and Formats</label>
+     <demoitem>
+   	 <label>Converting Coastline Data (GSHHS) to Shapefile Format</label>
+   	 <type>M-file</type>
+       <source>mapexgshhs</source>
+     </demoitem>
+
+     <demoitem>
+   	 <label>Exporting Vector Point Data to KML</label>
+   	 <type>M-file</type>
+       <source>mapexkmlexport</source>
+     </demoitem>
+
+     <demoitem>
+   	 <label>Exporting Images and Raster Grids to GeoTIFF</label>
+   	 <type>M-file</type>
+       <source>mapexgeotiff</source>
+     </demoitem>
+
+     <demoitem>
+   	 <label>Plotting a 3-D Dome as a Mesh Over a Globe</label>
+   	 <type>M-file</type>
+       <source>mapex3ddome</source>
+     </demoitem>
+
+     <demoitem>
+   	 <label>Un-Projecting a Digital Elevation Model (DEM)</label>
+   	 <type>M-file</type>
+       <source>mapexunprojectdem</source>
+     </demoitem>
+   </demosection>
+
+   <demosection>
+   <label>Working with Georeferenced Images</label>
+     <demoitem>
+   	 <label>Creating a Half-Resolution Georeferenced Image</label>
+   	 <type>M-file</type>
+       <source>mapexrefmat</source>
+       <dependency>Image Processing Toolbox</dependency>
+     </demoitem>
+
+     <demoitem>
+   	 <label>Georeferencing an Image to an Orthotile Base Layer</label>
+   	 <type>M-file</type>
+       <source>mapexreg</source>
+       <dependency>Image Processing Toolbox</dependency>
+     </demoitem>
+   </demosection>
+
+   <demosection>
+   <label>Interacting with Web Map Service (WMS) Servers</label>   
+     <demoitem>
+   	 <label>Compositing and Animating Web Map Service (WMS) Meteorological Layers</label>
+   	 <type>M-file</type>
+       <source>mapexwmsanimate</source>
+     </demoitem>
+   </demosection>
+
+</demos>

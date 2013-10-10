@@ -1,0 +1,140 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Plotting a 3-D Dome as a Mesh Over a Globe</title><meta name="generator" content="MATLAB 7.12"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2011-02-02"><meta name="DC.source" content="mapex3ddome.m"><link rel="stylesheet" type="text/css" href="../../../matlab/demos/private/style.css"></head><body><div class="header"><div class="left"><a href="matlab:edit mapex3ddome">Open mapex3ddome.m in the Editor</a></div><div class="right"><a href="matlab:echodemo mapex3ddome">Run in the Command Window</a></div></div><div class="content"><h1>Plotting a 3-D Dome as a Mesh Over a Globe</h1><!--introduction--><p>This demo illustrates how to start with a 3-D feature in a system of local vertical coordinates, then transform and combine it with a globe display in Earth-Centered, Earth-Fixed (ECEF) coordinates.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Step 1: Set Defining Parameters</a></li><li><a href="#2">Step 2: Construct the Dome in Local Vertical Coordinates</a></li><li><a href="#3">Step 3: Convert Dome to the Earth-Centered Earth-Fixed (ECEF) System</a></li><li><a href="#4">Step 4: Construct a Globe Display</a></li><li><a href="#5">Step 5: Add Various Global Map Data</a></li><li><a href="#6">Step 6: Add the Dome to the Globe Display</a></li><li><a href="#8">Credit</a></li></ul></div><h2>Step 1: Set Defining Parameters<a name="1"></a></h2><p>Use the Global Reference System of 1980 (GRS80) and work in units of kilometers. Place the origin of the local vertical system near Washington, DC, USA.</p><pre class="codeinput">grs80 = almanac(<span class="string">'earth'</span>,<span class="string">'grs80'</span>,<span class="string">'km'</span>);
+domeRadius =  3000;  <span class="comment">% km</span>
+domeLat =  39;       <span class="comment">% degrees</span>
+domeLon = -77;       <span class="comment">% degrees</span>
+domeAlt = 0;         <span class="comment">% km</span>
+</pre><h2>Step 2: Construct the Dome in Local Vertical Coordinates<a name="2"></a></h2><p>Local vertical is defined with respect to a geodetic reference point, specified in this case by (<tt>domeLat</tt>, <tt>domeLon</tt>, and <tt>domeAlt</tt>). It is a 3-D Cartesian system in which the positive x-axis is directed to the east, the positive y-axis is directed to the north, and the z-axis is normal to the reference ellipsoid and directed upward.</p><p>In this example, the 3-D feature is a hemisphere in the z &gt;= 0 halfspace with a radius of 3000 kilometers.  This hemisphere could enclose, hypothetically, the volume of space within range of a idealized radar system having uniform coverage from the horizon to the zenith, in all azimuths.  Volumes of space such as this, when representing zones of effective surveillance coverage, are sometimes known informally as "radar domes."</p><p>A quick way to construct coordinate arrays outlining a closed hemispheric dome is to start with a unit sphere, scale up the radius, and collapse the lower hemisphere. It's easier to visualize if you make it semitransparent -- setting the <tt>FaceAlpha</tt> to 0.5 in this case.</p><pre class="codeinput">[x,y,z] = sphere(20);
+xLV = domeRadius * x;
+yLV = domeRadius * y;
+zLV = domeRadius * z;
+zLV(zLV &lt; 0) = 0;
+figure(<span class="string">'Renderer'</span>,<span class="string">'opengl'</span>)
+surf(xLV, yLV, zLV,<span class="string">'FaceColor'</span>,<span class="string">'yellow'</span>,<span class="string">'FaceAlpha'</span>,0.5)
+axis <span class="string">equal</span>
+</pre><img vspace="5" hspace="5" src="mapex3ddome_01.png" alt=""> <h2>Step 3: Convert Dome to the Earth-Centered Earth-Fixed (ECEF) System<a name="3"></a></h2><p>Use function <tt>lv2ecef</tt> to convert the dome from local vertical to an ECEF system based on the GRS 80 reference ellipsoid, in one step.  It applies a 3-D translation and rotation. Notice how the hemisphere becomes tilted and how its center moves thousands of kilometers from the origin.</p><pre class="codeinput">[xECEF, yECEF, zECEF] = lv2ecef(xLV, yLV, zLV, <span class="keyword">...</span>
+    domeLat * pi/180, domeLon * pi/180, domeAlt, grs80);
+surf(xECEF, yECEF, zECEF,<span class="string">'FaceColor'</span>,<span class="string">'yellow'</span>,<span class="string">'FaceAlpha'</span>,0.5)
+axis <span class="string">equal</span>
+</pre><img vspace="5" hspace="5" src="mapex3ddome_02.png" alt=""> <h2>Step 4: Construct a Globe Display<a name="4"></a></h2><p>Construct a basic globe display using <tt>axesm</tt> and <tt>globe</tt>.</p><pre class="codeinput">figure(<span class="string">'Renderer'</span>,<span class="string">'opengl'</span>)
+ax = axesm(<span class="string">'globe'</span>,<span class="string">'Geoid'</span>,grs80,<span class="string">'Grid'</span>,<span class="string">'on'</span>, <span class="keyword">...</span>
+    <span class="string">'GLineWidth'</span>,1,<span class="string">'GLineStyle'</span>,<span class="string">'-'</span>,<span class="keyword">...</span>
+    <span class="string">'Gcolor'</span>,[0.9 0.9 0.1],<span class="string">'Galtitude'</span>,100);
+set(ax,<span class="string">'Position'</span>,[0 0 1 1]);
+axis <span class="string">equal</span> <span class="string">off</span>
+view(3)
+</pre><img vspace="5" hspace="5" src="mapex3ddome_03.png" alt=""> <h2>Step 5: Add Various Global Map Data<a name="5"></a></h2><p>Add low-resolution global topography, coastlines, and rivers to the globe.</p><pre class="codeinput">load <span class="string">topo</span>
+geoshow(topo,topolegend,<span class="string">'DisplayType'</span>,<span class="string">'texturemap'</span>)
+demcmap(topo)
+land = shaperead(<span class="string">'landareas'</span>,<span class="string">'UseGeoCoords'</span>,true);
+plotm([land.Lat],[land.Lon],<span class="string">'Color'</span>,<span class="string">'black'</span>)
+rivers = shaperead(<span class="string">'worldrivers'</span>,<span class="string">'UseGeoCoords'</span>,true);
+plotm([rivers.Lat],[rivers.Lon],<span class="string">'Color'</span>,<span class="string">'blue'</span>)
+</pre><img vspace="5" hspace="5" src="mapex3ddome_04.png" alt=""> <h2>Step 6: Add the Dome to the Globe Display<a name="6"></a></h2><p>Add the ECEF version of dome to the globe axes as a semitransparent mesh.</p><pre class="codeinput">surf(xECEF, yECEF, zECEF,<span class="string">'FaceColor'</span>,<span class="string">'yellow'</span>,<span class="string">'FaceAlpha'</span>,0.5)
+</pre><img vspace="5" hspace="5" src="mapex3ddome_05.png" alt=""> <p>You can view the dome and globe from different angles by interactively rotating the axes in the MATLAB&reg; figure.</p><h2>Credit<a name="8"></a></h2><p>Thanks to Edward J. Mayhew, Jr. for providing technical background on "radar domes" and for bringing to our attention the problem of visualizing them with the Mapping Toolbox&#8482;.</p><p class="footer">Copyright 2005-2008 The MathWorks, Inc.<br>
+          Published with MATLAB&reg; 7.12</p><p class="footer" id="trademarks">MATLAB and Simulink are registered trademarks of The MathWorks, Inc.  Please see <a href="http://www.mathworks.com/trademarks">www.mathworks.com/trademarks</a> for a list of other trademarks owned by The MathWorks, Inc.  Other product or brand names are trademarks or registered trademarks of their respective owners.</p></div><!--
+##### SOURCE BEGIN #####
+%% Plotting a 3-D Dome as a Mesh Over a Globe
+% This demo illustrates how to start with a 3-D feature in a system of
+% local vertical coordinates, then transform and combine it with a globe
+% display in Earth-Centered, Earth-Fixed (ECEF) coordinates.
+ 
+% Copyright 2005-2008 The MathWorks, Inc.
+% $Revision: 1.1.6.5 $  $Date: 2008/06/16 16:47:06 $
+
+%% Step 1: Set Defining Parameters
+% Use the Global Reference System of 1980 (GRS80) and work in units of
+% kilometers. Place the origin of the local vertical system near
+% Washington, DC, USA.
+grs80 = almanac('earth','grs80','km');
+domeRadius =  3000;  % km
+domeLat =  39;       % degrees
+domeLon = -77;       % degrees
+domeAlt = 0;         % km
+
+%% Step 2: Construct the Dome in Local Vertical Coordinates
+% Local vertical is defined with respect to a geodetic reference point,
+% specified in this case by (|domeLat|, |domeLon|, and |domeAlt|). It
+% is a 3-D Cartesian system in which the positive x-axis is directed to
+% the east, the positive y-axis is directed to the north, and the z-axis
+% is normal to the reference ellipsoid and directed upward.
+%
+% In this example, the 3-D feature is a hemisphere in the z >= 0
+% halfspace with a radius of 3000 kilometers.  This hemisphere could
+% enclose, hypothetically, the volume of space within range of a
+% idealized radar system having uniform coverage from the horizon to the
+% zenith, in all azimuths.  Volumes of space such as this, when
+% representing zones of effective surveillance coverage, are sometimes
+% known informally as "radar domes."
+%
+% A quick way to construct coordinate arrays outlining a closed
+% hemispheric dome is to start with a unit sphere, scale up the radius,
+% and collapse the lower hemisphere. It's easier to visualize if you
+% make it semitransparent REPLACE_WITH_DASH_DASH setting the |FaceAlpha| to 0.5 in this
+% case.
+[x,y,z] = sphere(20);
+xLV = domeRadius * x;
+yLV = domeRadius * y;
+zLV = domeRadius * z;
+zLV(zLV < 0) = 0;
+figure('Renderer','opengl')
+surf(xLV, yLV, zLV,'FaceColor','yellow','FaceAlpha',0.5)
+axis equal
+
+%% Step 3: Convert Dome to the Earth-Centered Earth-Fixed (ECEF) System
+% Use function |lv2ecef| to convert the dome from local vertical to an
+% ECEF system based on the GRS 80 reference ellipsoid, in one step.  It
+% applies a 3-D translation and rotation. Notice how the hemisphere
+% becomes tilted and how its center moves thousands of kilometers from
+% the origin.
+[xECEF, yECEF, zECEF] = lv2ecef(xLV, yLV, zLV, ...
+    domeLat * pi/180, domeLon * pi/180, domeAlt, grs80);
+surf(xECEF, yECEF, zECEF,'FaceColor','yellow','FaceAlpha',0.5)
+axis equal
+
+%% Step 4: Construct a Globe Display
+% Construct a basic globe display using |axesm| and |globe|.
+figure('Renderer','opengl')
+ax = axesm('globe','Geoid',grs80,'Grid','on', ...
+    'GLineWidth',1,'GLineStyle','-',...
+    'Gcolor',[0.9 0.9 0.1],'Galtitude',100);
+set(ax,'Position',[0 0 1 1]);
+axis equal off
+view(3)
+
+%% Step 5: Add Various Global Map Data
+% Add low-resolution global topography, coastlines, and rivers to the
+% globe.
+load topo
+geoshow(topo,topolegend,'DisplayType','texturemap')
+demcmap(topo)
+land = shaperead('landareas','UseGeoCoords',true);
+plotm([land.Lat],[land.Lon],'Color','black')
+rivers = shaperead('worldrivers','UseGeoCoords',true);
+plotm([rivers.Lat],[rivers.Lon],'Color','blue')
+
+%% Step 6: Add the Dome to the Globe Display
+% Add the ECEF version of dome to the globe axes as a semitransparent mesh.
+surf(xECEF, yECEF, zECEF,'FaceColor','yellow','FaceAlpha',0.5)
+
+%%
+% You can view the dome and globe from different angles by interactively
+% rotating the axes in the MATLAB(R) figure.
+
+%% Credit
+% Thanks to Edward J. Mayhew, Jr. for providing technical background on
+% "radar domes" and for bringing to our attention the problem of
+% visualizing them with the Mapping Toolbox(TM).
+
+
+displayEndOfDemoMessage(mfilename)
+
+##### SOURCE END #####
+--></body></html>
