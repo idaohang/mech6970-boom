@@ -94,14 +94,27 @@ end
 %% Psuedorange/Position Estimation
 
 %building a matrix of pseudoranges, with rows of pseudo ranges for each sv.  NaN is no value.
+
 psuedorange=zeros(nsv,ndat);
-for j=1:nsv
-    
-    
-    
-    
-    
-    
-    
-    
+for j=2:5 %:ndat
+    guess=[0,0,0,0];
+    for conv=1:5
+        G=ones(nsv,4);
+        drho=ones(nsv,1);
+        for k=1:nsv
+            xs=svpos(1,k,j);
+            ys=svpos(2,k,j);
+            zs=svpos(3,k,j);
+            svp=[xs,ys,zs];
+            neg_one=-(svp-guess(1:3))./norm(svp-guess(1:3));
+            G(k,1:3)=neg_one;
+            drho(k)=c; %%%%%%%% Not sure what the hell is supposed to be here. delrho
+        end
+        
+        guess_update=inv(G'*G)*G'*drho;
+        guess=guess+guess_update';
+        fprintf('%25.15f\n',guess(1:3))
+        fprintf('\n')
+    end
+    fprintf('\n\n\n\n')
 end
