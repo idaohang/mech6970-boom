@@ -4,7 +4,7 @@ function [out,t_ow] = ephem_novatel2gavlab(in)
 % return something in the order expected by calc_sv_pos
 % 
 % USAGE:
-%   [out,prns,t_ow] = EPHEM_NOVATEL2GAVLAB(in)
+%   [out, t_ow] = EPHEM_NOVATEL2GAVLAB(in)
 % 
 % INPUTS:
 % 
@@ -69,7 +69,7 @@ function [out,t_ow] = ephem_novatel2gavlab(in)
 %         dot_Omega=ephem_data(20);
 %         Idot=ephem_data(21);
 % 
-%   t_ow: time of week for ephemeris
+%   t_ow: time of week at which ephemeris was broad cast from SV to Rcvr
 % 
 
 rearrange = [...

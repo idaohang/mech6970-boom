@@ -79,7 +79,7 @@ M   = rem(M + 2*gpsPi, 2*gpsPi);
 E   = M;
 
 %--- Iteratively compute eccentric anomaly ----------------------------
-for ii = 1:10
+for ii = 1:20
 	E_old = E;
 	E = M + e * sin(E);
 	dE = rem(E - E_old, 2*gpsPi);
@@ -91,7 +91,8 @@ end
 %Reduce eccentric anomaly to between 0 and 360 deg
 E = rem(E + 2*gpsPi, 2*gpsPi);
 %Compute relativistic correction term
-dtr = F * e * sqrt_A * sin(E);
+% dtr = F * e * sqrt_A * sin(E); % !!!! This was the original code.
+dtr = F*e;
 %Calculate the true anomaly
 nu = atan2(sqrt(1 - e^2) * sin(E), cos(E)-e);
 %Compute angle phi
@@ -112,9 +113,9 @@ Omega = Omega_0 + (dot_Omega-Omegae_dot)*tk - Omegae_dot*t_oe - Omegae_dot*trans
 Omega = rem(Omega + 2*gpsPi, 2*gpsPi);
 
 %--- Compute satellite coordinates ------------------------------------
-satPositions(1, satNr) = cos(u)*r * cos(Omega) - sin(u)*r * cos(i)*sin(Omega);
-satPositions(2, satNr) = cos(u)*r * sin(Omega) + sin(u)*r * cos(i)*cos(Omega);
-satPositions(3, satNr) = sin(u)*r * sin(i);
+satPositions(1, satNr) = cos(u)* r * cos(Omega) - sin(u)* r * cos(i)* sin(Omega);
+satPositions(2, satNr) = cos(u)* r * sin(Omega) + sin(u)* r * cos(i)* cos(Omega);
+satPositions(3, satNr) = sin(u)* r * sin(i);
 
 % Include relativistic correction in clock correction -----------------
 satClkCorr(satNr) = (a_f2 * dt + a_f1) * dt + a_f0 - T_GD + dtr;
