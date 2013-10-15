@@ -92,13 +92,10 @@ end
 
 
 %% Psuedorange/Position Estimation
-
-%building a matrix of pseudoranges, with rows of pseudo ranges for each sv.  NaN is no value.
-
-psuedorange=zeros(nsv,ndat);
-for j=2:5 %:ndat
+for j=200:250 %:ndat
     guess=[0,0,0,0];
-    for conv=1:5
+    guess_update=1;
+    while max(abs(guess_update))>0.5
         G=ones(nsv,4);
         drho=ones(nsv,1);
         for k=1:nsv
@@ -106,15 +103,14 @@ for j=2:5 %:ndat
             ys=svpos(2,k,j);
             zs=svpos(3,k,j);
             svp=[xs,ys,zs];
-            neg_one=-(svp-guess(1:3))./norm(svp-guess(1:3));
-            G(k,1:3)=neg_one;
-            drho(k)=c; %%%%%%%% Not sure what the hell is supposed to be here. delrho
+            G(k,1:3)=-(svp-guess(1:3))./psrL1(k,j);
+            G(k,4)=c;
+            drho(k)=psrL1(k,j)-(sqrt(sum((guess(1:3)-svp).^2)));
         end
-        
-        guess_update=inv(G'*G)*G'*drho;
+        guess_update=pinv(G)*drho;
         guess=guess+guess_update';
-        fprintf('%25.15f\n',guess(1:3))
-        fprintf('\n')
+        %fprintf('%25.15f\n',max(abs(guess_update)))
     end
-    fprintf('\n\n\n\n')
+    [lat,lon,alt]=wgsxyz2lla(guess(1:3));
+    fprintf('%20.10f\t%20.10f\t%20.10f\n',lat,lon,alt)
 end
