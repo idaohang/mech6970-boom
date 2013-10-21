@@ -14,12 +14,13 @@ clear all; close all; clc
 fprintf('\nPart 1 - b)\n')
 matlabpool(3) % comment this out if you don't have the parallel toolbox
 part1b_load_data
+kml_file = kml('Lab3_Part1_b');
 tic
 
 %% Parameters
 
 % Smoothing window (samples @ 1 Hz)
-M = 100;
+M = 50;
 
 % Estimated transit time from SV to user
 c = 299792458;
@@ -27,15 +28,26 @@ transit_time_est = 20e6/c; % seconds
 
 % LLA estimate of the user position for unit vectors (using Google Earth)
 lla_user_est = [dms2deg([32,35,26.1]), -dms2deg([85,29,20.61]), 205]; % lat lon alt
-
+% Initial Estimates to Use
+x0 = wgslla2xyz(lla_user_est(1), lla_user_est(2), lla_user_est(3));
 % Estimate of the user clock bias
-b0 = 150; % meters
+b0 = 100;
+
+% stop when solution only moves slightly each iteration
+pos_tol = .001;
+% maximum iterations for each epoch
+maxit = 20000;
+
+% Measurment Covariance coefficient
+% R_coeff = 0.25;
+% Initial Estimate Error Covariance
+% P0 = diag([100000 100000 100000 100]);
 
 
 %% Calculate SV Positions from Ephemeris
 
 ephem_mat = zeros(21,nsv);
-ephem_time = zeros(1,nsv); % gps seconds into week at which ephem was transmitted
+ephem_time = zeros(1,nsv); % gps seconds into subplot(week at which ephem was transmitted
 sv_clkcorr = zeros(nsv,ndat);
 sv_clkcorr_psr = zeros(size(sv_clkcorr)); % range correction corresponding to clock correction
 svpos = zeros(3,nsv,ndat);
@@ -64,12 +76,10 @@ parfor i = 1:nsv
 end
 
 % output LLA sv pos initial to KML file
-kml_file = kml('Lab3_Part1_b');
 kml_f_svpos0 = kml_file.createFolder('SV Initial Positions');
 for k = 1:8
   kml_f_svpos0.point(svpos_lla(2,k,1),svpos_lla(1,k,1),svpos_lla(3,k,1));
 end
-
 
 clear  i k 
 
@@ -112,25 +122,9 @@ clear i
 
 %% Least Squares Position Estimation
 
-% Initial Estimates to Use
-% Use the same one for each epoch, since[x_est, b_est, nit] = PsrPos_LSE(psr_cs1, svpos,  the data set is known to be static.
-x0 = wgslla2xyz(lla_user_est(1), lla_user_est(2), lla_user_est(3));
-% bias around 100m
-b0 = 100;
-
-% stop when solution only moves slightly each iteration
-pos_tol = .001;
-% maximum iterations for each epoch
-maxit = 20000;
-
-% Measurment Covariance coefficient
-R_coeff = 0.25;
-
-% Initial Estimate Error Covariance
-P0 = 10*eye(3);
-P0(4,4) = 100;
-
 x_est = zeros(3,ndat);
+% first guess 
+x_est(:,1) = x0;
 b_est = zeros(1,ndat);
 iterations = zeros(1,ndat);
 
@@ -141,19 +135,41 @@ parfor k = 1:ndat
   % corrections/smoothing
   have_data = find(psrL1(:,k)); 
   svpos_ = svpos(:,have_data,k)';
-  psr_ = psrL1(have_data,k)';
-  R = R_coeff*eye(length(have_data));
-%   [x_est(:,k), b_est(k), iterations(k)] = PsrPos_WLSE(psr_, svpos_, R,P0, x0,b0, pos_tol,maxit);
-  [x_est(:,k), b_est(k), iterations(k)] = PsrPos_LSE(psr_, svpos_, P0, x0,b0, pos_tol,maxit);
+  %psr_ = psrL1(have_data,k)';
+  %psr_ = psrL1_cs1(have_data,k)';
+  %psr_ = psrL1corr(have_data,k)';
+  psr_ = psrL1corr_cs1(have_data,k)';
+  
+  % R = R_coeff*eye(length(have_data));
+  % [x_est(:,k), b_est(k), iterations(k)] = PsrPos_WLSE(psr_, svpos_, R,P0, x0,b0, pos_tol,maxit);
+  [x_est(:,k), b_est(k), iterations(k)] = PsrPos_LSE(psr_, svpos_, x0,b0, pos_tol,maxit);
 end
 
 
 %% Examine Solution
 
-x_mean = mean(x_est,2);
-[lat_mean, lon_mean, alt_mean] = wgsxyz2lla(x_mean)
+% x_mean = mean(x_est,2);
+% [lat_mean, lon_mean, alt_mean] = wgsxyz2lla(x_mean)
+lla_est = zeros(3,ndat);
+parfor k = 1:ndat
+  [lat,lon,alt] = wgsxyz2lla(x_est(:,k),100000);
+  lla_est(:,k) = [lat;lon;alt];
+end
 
+mean(lla_est,2)
 
+figure;
+  subplot(3,1,1);
+    plot(x_est(1,:)); grid on
+    ylabel('X'); title('ECEF Position Estimate')
+  subplot(3,1,2);
+    plot(x_est(2,:)); grid on
+    ylabel('Y');
+  subplot(3,1,3);
+    plot(x_est(3,:)); grid on
+    ylabel('Z'); xlabel('Time (s)')
+
+    
 %% End matters 
 
 try
