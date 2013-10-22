@@ -12,7 +12,9 @@
 
 clear all; close all; clc
 fprintf('\nPart 1 - b)\n')
-matlabpool(3) % comment this out if you don't have the parallel toolbox
+try
+  matlabpool(3) % comment this out if you don't have the parallel toolbox
+end
 part1b_load_data
 kml_file = kml('Lab3_Part1_b');
 tic
@@ -25,6 +27,9 @@ M = 50;
 % Estimated transit time from SV to user
 c = 299792458;
 transit_time_est = 20e6/c; % seconds
+
+fL1 = 1575.42e6; % L1 frequency, Hz
+wavelengthL1 = c/fL1;
 
 % LLA estimate of the user position for unit vectors (using Google Earth)
 lla_user_est = [dms2deg([32,35,26.1]), -dms2deg([85,29,20.61]), 205]; % lat lon alt
@@ -86,6 +91,7 @@ clear  i k
 %% Carrier Smoothing
 % Accumulated Doppler (ADR) is the negative of the Carrier Phase
 % 
+carL1 = -adrL1*wavelengthL1;
 
 % Carrier smoothed range estimates - uncorrected for relativistic term
 psrL1_cs1 = zeros(nsv,ndat);
@@ -111,9 +117,8 @@ for k = 2:ndat
     end
     
     % Single Frequency
-    % ADR = -CARPHASE
-    psrL1_cs1(i,k) = psrL1(i,k)/M + (M-1)/M*( psrL1_cs1(i,k-1) - adrL1(i,k) + adrL1(i,k-1));
-    psrL1corr_cs1(i,k) = psrL1corr(i,k)/M + (M-1)/M*( psrL1corr_cs1(i,k-1) - adrL1(i,k) + adrL1(i,k-1));
+    psrL1_cs1(i,k) = psrL1(i,k)/M + (M-1)/M*( psrL1_cs1(i,k-1) + carL1(i,k) - carL1(i,k-1));
+    psrL1corr_cs1(i,k) = psrL1corr(i,k)/M + (M-1)/M*( psrL1corr_cs1(i,k-1) + carL1(i,k) - carL1(i,k-1));
     
   end
 end
@@ -135,9 +140,6 @@ parfor k = 1:ndat
   % corrections/smoothing
   have_data = find(psrL1(:,k)); 
   svpos_ = svpos(:,have_data,k)';
-  %psr_ = psrL1(have_data,k)';
-  %psr_ = psrL1_cs1(have_data,k)';
-  %psr_ = psrL1corr(have_data,k)';
   psr_ = psrL1corr_cs1(have_data,k)';
   
   % R = R_coeff*eye(length(have_data));
