@@ -40,6 +40,23 @@ ndat = length(time);
 prns = [1 2 4 8 9 10 12 17 20 24 28 32];
 nsv = length(prns);
 
+% ephem_mat: each column corresponds to an sv
+ephem_mat_novatel = [...
+  gNovatel0.zEphem1_gNovatel0{end},...
+  gNovatel0.zEphem2_gNovatel0{end},...
+  gNovatel0.zEphem4_gNovatel0{end},...
+  gNovatel0.zEphem8_gNovatel0{end},...
+  gNovatel0.zEphem9_gNovatel0{end},...
+  gNovatel0.zEphem10_gNovatel0{end},...
+  gNovatel0.zEphem12_gNovatel0{end},...
+  gNovatel0.zEphem17_gNovatel0{end},...
+  gNovatel0.zEphem20_gNovatel0{end},...
+  gNovatel0.zEphem24_gNovatel0{end},...
+  gNovatel0.zEphem28_gNovatel0{end},...
+  gNovatel0.zEphem32_gNovatel0{end}...
+];
+
+
 % Turn PSR/ADR data into a matrix
 psrL1 = zeros(nsv,ndat);
 adrL1 = zeros(nsv,ndat);
@@ -57,60 +74,114 @@ nsv = length(prns);
 psrL1 = psrL1(have_dat,:);
 adrL1 = adrL1(have_dat,:);
 adrL2 = adrL2(have_dat,:);
+ephem_mat_novatel = ephem_mat_novatel(:,have_dat);
 
-clear valid_dat adrL1_ adrL2_ psrL1_ have_dat
-
-
-ephem_mat_novatel = [...
-  gNovatel0.zEphem1_gNovatel0{end},...
-  gNovatel0.zEphem2_gNovatel0{end},...
-  gNovatel0.zEphem4_gNovatel0{end},...
-  gNovatel0.zEphem8_gNovatel0{end},...
-  gNovatel0.zEphem9_gNovatel0{end},...
-  gNovatel0.zEphem10_gNovatel0{end},...
-  gNovatel0.zEphem12_gNovatel0{end},...
-  gNovatel0.zEphem17_gNovatel0{end},...
-  gNovatel0.zEphem20_gNovatel0{end},...
-  gNovatel0.zEphem24_gNovatel0{end},...
-  gNovatel0.zEphem28_gNovatel0{end},...
-  gNovatel0.zEphem32_gNovatel0{end}...
-];
+% put time into seconds from milliseconds
+time = time/1000;
 
 ephem_mat = zeros(21,nsv);
 ephem_time = zeros(1,nsv); % gps seconds into week at which ephem was transmitted
 sv_clkcorr = zeros(nsv,ndat);
+sv_clkcorr_psr = zeros(size(sv_clkcorr)); % range correction corresponding to clock correction
 svpos = zeros(3,nsv,ndat);
+psrL1corr = zeros(size(psrL1));
 
 for i = 1:nsv
   % get the ephemeris matrix into the correct format
   [ephem_mat(:,i), ephem_time(i)] = ephem_novatel2gavlab(ephem_mat_novatel(:,i));
   % Find the SV Position at each of the measurement epochs we have
+  ephem_mat_ = ephem_mat(:,i);
   for k = 1:ndat
-    [svpos(:,i,k), sv_clkcorr(i,k)] = calc_sv_pos(ephem_mat(:,i), time(k), transit_time_est);
+    tx_time = time(k);%-transit_time_est;
+    [svpos(:,i,k), sv_clkcorr(i,k)] = calc_sv_pos(ephem_mat_, tx_time, transit_time_est);
+    sv_clkcorr_psr(i,k) = sv_clkcorr(i,k)*c;
+    psrL1corr(i,k) = psrL1(i,k) + sv_clkcorr_psr(i,k);
   end
 end
 
 
 %% Psuedorange/Position Estimation
-for j=200:250 %:ndat
+
+latplot=[];
+lonplot=[];
+altplot=[];
+truelatplot=[];
+truelonplot=[];
+truealtplot=[];
+HDOP=[];
+for j=200:ndat %:ndat
     guess=[0,0,0,0];
     guess_update=1;
     while max(abs(guess_update))>0.5
         G=ones(nsv,4);
         drho=ones(nsv,1);
         for k=1:nsv
-            xs=svpos(1,k,j);
-            ys=svpos(2,k,j);
-            zs=svpos(3,k,j);
-            svp=[xs,ys,zs];
-            G(k,1:3)=-(svp-guess(1:3))./psrL1(k,j);
-            G(k,4)=c;
-            drho(k)=psrL1(k,j)-(sqrt(sum((guess(1:3)-svp).^2)));
+            if psrL1corr(k,j)==0
+                G(k,:)=[nan,nan,nan,nan];
+                drho(k)=nan;
+            else
+                xs=svpos(1,k,j);
+                ys=svpos(2,k,j);
+                zs=svpos(3,k,j);
+                svp=[xs,ys,zs];
+                G(k,1:3)=-(svp-guess(1:3))./psrL1corr(k,j);
+                G(k,4)=c;
+                drho(k)=psrL1corr(k,j)-(sqrt(sum((guess(1:3)-svp).^2)));
+            end
         end
+        
+        for k=1:nsv
+            if isnan(G(k,1))
+                G(k,:)=[];
+                drho(k)=[];
+            end
+        end
+        
+        
         guess_update=pinv(G)*drho;
         guess=guess+guess_update';
-        %fprintf('%25.15f\n',max(abs(guess_update)))
+        fprintf('%25.15f\n',max(abs(guess_update)))
     end
+    DOP=calcDOP(G);
+    HDOP(end+1)=DOP(1);
     [lat,lon,alt]=wgsxyz2lla(guess(1:3));
-    fprintf('%20.10f\t%20.10f\t%20.10f\n',lat,lon,alt)
+    latplot(end+1)=lat;
+    lonplot(end+1)=lon;
+    altplot(end+1)=alt;
+    [lat,lon,alt]=wgsxyz2lla([gNovatel0.zX_gNovatel0(j),gNovatel0.zY_gNovatel0(j),gNovatel0.zZ_gNovatel0(j)]);
+    truelatplot(end+1)=lat;
+    truelonplot(end+1)=lon;
+    truealtplot(end+1)=alt;
+    %fprintf('%20.10f\t%20.10f\t%20.10f\n',lat,lon,alt)
 end
+
+figure;
+subplot(3,1,1)
+plot(latplot)
+title('Lat')
+subplot(3,1,2)
+plot(lonplot)
+title('Lon')
+subplot(3,1,3)
+plot(altplot)
+title('Alt')
+
+figure;
+subplot(3,1,1)
+plot(latplot-truelatplot)
+title('LatCal-LatNovatel')
+subplot(3,1,2)
+plot(lonplot-truelonplot)
+title('LonCal-LonNovatel')
+subplot(3,1,3)
+plot(altplot-truealtplot)
+title('AltCal-AltNovatel')
+
+figure;
+plot(HDOP)
+title('HDOP')
+
+clc;
+fprintf('\nMean Position: \n\tLat: %20.10f degrees\n\tLon: %20.10f degrees\n\tAlt: %20.10f meters\n\n',mean(lat),mean(lon),mean(alt));
+fprintf('\nExpected Error: \n\tHDOP: %20.10f meters\n',mean(HDOP));
+
