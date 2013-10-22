@@ -7,9 +7,9 @@
 clear all; close all; clc
 tic
 part2c_load_data
-try
-  matlabpool(3) % comment this out if you don't have the parallel toolbox
-end
+% try
+%   matlabpool(3) % comment this out if you don't have the parallel toolbox
+% end
 
 
 %% Parameters
@@ -45,15 +45,12 @@ for i = 1:nsv
   % Find the SV Position at each of the measurement epochs we have
   ephem_mat_ = ephem_mat(:,i);
     
-  % find elevation of each satellite
-
-
-    parfor k = 1:ndat
-    tx_time = time(k)%;-transit_time_est;
-    [svpos(:,i,k), sv_clkcorr(i,k)] = calc_sv_pos(ephem_mat_, tx_time, transit_time_est);
-    sv_clkcorr_psr(i,k) = sv_clkcorr(i,k)*c;
-    psrL1r0corr(i,k) = psrL1r0(i,k) + sv_clkcorr_psr(i,k);
-    psrL1r1corr(i,k) = psrL1r1(i,k) + sv_clkcorr_psr(i,k);
+  for k = 1:ndat
+  tx_time = time(k);%-transit_time_est;
+  [svpos(:,i,k), sv_clkcorr(i,k)] = calc_sv_pos(ephem_mat_, tx_time, transit_time_est);
+  sv_clkcorr_psr(i,k) = sv_clkcorr(i,k)*c;
+  psrL1r0corr(i,k) = psrL1r0(i,k) + sv_clkcorr_psr(i,k);
+  psrL1r1corr(i,k) = psrL1r1(i,k) + sv_clkcorr_psr(i,k);
     
 %     % check position using approx psr
 %     if psrL1r0(i,k)
@@ -63,8 +60,11 @@ for i = 1:nsv
   end
 end
 
+% Plot the SV history
+plot_svpos(svpos,ecef_user_est,prns_label);
+
 % find the elevation of each satellite at each epoch
-parfor k = 1:ndat
+for k = 1:ndat
   [~,svelev(:,k)] = calc_azel(ecef_user_est',reshape(svpos(:,:,k),nsv,3));
 end
 
@@ -76,7 +76,7 @@ end
 
 % Look at SV position LLA just to check the positions
 svpos_lla = zeros(size(svpos));
-parfor i = 1:nsv
+for i = 1:nsv
   for k = 1:ndat
     [lat, lon, alt] = coordutil.wgsxyz2lla(svpos(:,i,k),1000);
     svpos_lla(:,i,k) = [lat, lon, alt];
@@ -112,7 +112,7 @@ Nsd01_float = (carL1r01sd-psrL1r01sd)/wavelengthL1;
 figure;
   plot(Nsd01_float');
   title('Single Differenced Floating Ambiguity Estimates');
-  ylabel('Est N_{ab}'); xlabel('sample #');
+  ylabel('Est   N_{ab}'); xlabel('sample #');
   legend(prns_label); grid on
 
 
@@ -131,8 +131,8 @@ figure;
 
 %% End matters 
 
-try
-  matlabpool close
-end
+% try
+%   matlabpool close
+% end
 toc
 

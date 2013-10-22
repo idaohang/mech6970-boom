@@ -157,6 +157,11 @@ end
 
 %% Examine Solution
 
+% gps reported soln
+gps_pos = [423058.737253 -5362534.45249 3415910.22963];
+[lat, lon, alt] = wgsxyz2lla(gps_pos, 1000);
+gps_pos_lla = [lat lon alt];
+
 % x_mean = mean(x_est,2);
 % [lat_mean, lon_mean, alt_mean] = wgsxyz2lla(x_mean)
 lla_est = zeros(3,ndat);

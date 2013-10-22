@@ -16,7 +16,7 @@ function varargout = calc_azel(userpos, svpos)
 %   az: 1st row of ae
 %   el: 2nd row of ae
 % DEPENDENCIES:
-% 
+%   wgsxyz2lla, rotxyz2enu
 
 nsv = size(svpos); nsv = nsv(1);
 
@@ -27,9 +27,9 @@ el = zeros(1,nsv);
 for k = 1:nsv
   enu = rotxyz2enu(rays_ecef(k,:)', reflat,reflon);
   az(k) = atan2(enu(1),enu(2));
-%   gnd_proj = norm(enu(1:2),2);
+  gnd_proj = norm(enu(1:2),2);
   svdist = norm(enu);
-  el(k) = asin(enu(3)/svdist);
+  el(k) = atan2(enu(3)/svdist,gnd_proj/svdist);
 end
 
 if nargout == 1
