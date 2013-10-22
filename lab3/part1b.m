@@ -3,6 +3,7 @@
 % Robert Cofield
 % 
 % created 2013-10-09
+% 
 % Using Receiver 0
 %   had to copy some ephemeris data from Receiver 1 over to Receiver 0 due to
 %   parsing errors.
@@ -22,7 +23,7 @@ tic
 %% Parameters
 
 % Smoothing window (samples @ 1 Hz)
-M = 50;
+M = 100;
 
 % Estimated transit time from SV to user
 c = 299792458;
@@ -41,7 +42,7 @@ b0 = 100;
 % stop when solution only moves slightly each iteration
 pos_tol = .001;
 % maximum iterations for each epoch
-maxit = 20000;
+maxit = 100;
 
 % Measurment Covariance coefficient
 % R_coeff = 0.25;
@@ -132,6 +133,7 @@ x_est = zeros(3,ndat);
 x_est(:,1) = x0;
 b_est = zeros(1,ndat);
 iterations = zeros(1,ndat);
+dop = zeros(5,ndat);
 
 % % Estimator Loop
 parfor k = 1:ndat
@@ -140,11 +142,13 @@ parfor k = 1:ndat
   % corrections/smoothing
   have_data = find(psrL1(:,k)); 
   svpos_ = svpos(:,have_data,k)';
+  % use relativistic correction term and carrier smoothing
   psr_ = psrL1corr_cs1(have_data,k)';
+  % psr_ = psrL1_cs1(have_data,k)';
   
   % R = R_coeff*eye(length(have_data));
   % [x_est(:,k), b_est(k), iterations(k)] = PsrPos_WLSE(psr_, svpos_, R,P0, x0,b0, pos_tol,maxit);
-  [x_est(:,k), b_est(k), iterations(k)] = PsrPos_LSE(psr_, svpos_, x0,b0, pos_tol,maxit);
+  [x_est(:,k), b_est(k), iterations(k), dop(:,k)] = PsrPos_LSE(psr_, svpos_, x0,b0, pos_tol,maxit);
 end
 
 
@@ -158,19 +162,45 @@ parfor k = 1:ndat
   lla_est(:,k) = [lat;lon;alt];
 end
 
-mean(lla_est,2)
+% save pos soln over time
+kml_f_possoln = kml_file.createFolder('Position Solution over time');
+for k = 1:ndat
+  kml_f_possoln.point(lla_est(2,k),lla_est(1,k),lla_est(3,k));
+end
+
+mean_lla_soln = mean(lla_est,2)
+
+% save mean position solution
+kml_f_meanpos = kml_file.createFolder('Mean Position Solution');
+kml_f_meanpos.point(mean_lla_soln(2),mean_lla_soln(1),mean_lla_soln(3));
+
+% figure;
+%   subplot(3,1,1);
+%     plot(x_est(1,:)); grid on
+%     ylabel('X'); title('ECEF Position Estimate')
+%   subplot(3,1,2);
+%     plot(x_est(2,:)); grid on
+%     ylabel('Y');
+%   subplot(3,1,3);
+%     plot(x_est(3,:)); grid on
+%     ylabel('Z'); xlabel('Sample #')
 
 figure;
   subplot(3,1,1);
-    plot(x_est(1,:)); grid on
-    ylabel('X'); title('ECEF Position Estimate')
+    plot(lla_est(1,:)); grid on
+    ylabel('Lat (deg)'); title('LLA Position Estimate')
   subplot(3,1,2);
-    plot(x_est(2,:)); grid on
-    ylabel('Y');
+    plot(lla_est(2,:)); grid on
+    ylabel('Lon (deg)');
   subplot(3,1,3);
-    plot(x_est(3,:)); grid on
-    ylabel('Z'); xlabel('Time (s)')
-
+    plot(lla_est(3,:)); grid on
+    ylabel('Alt (m)'); xlabel('Sample #')
+    
+figure;
+  plot(dop');
+  legend('HDOP', 'VDOP', 'PDOP', 'TDOP', 'GDOP')
+  ylabel('DOP (m)'); xlabel('Sample #');
+  title('Dilutions of Precision');
     
 %% End matters 
 
@@ -179,6 +209,7 @@ try
 end
 toc
 save part1b_result
+
 kml_file.run();
 
 
