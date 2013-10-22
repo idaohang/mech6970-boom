@@ -21,7 +21,7 @@ function varargout = calc_azel(userpos, svpos)
 nsv = size(svpos); nsv = nsv(1);
 
 rays_ecef = svpos - repmat(userpos, nsv,1);
-[reflat, reflon, ~] = wgsxyz2lla(userpos, 100);
+[reflat, reflon, ~] = wgsxyz2lla(userpos, 1000);
 az = zeros(1,nsv);
 el = zeros(1,nsv);
 for k = 1:nsv

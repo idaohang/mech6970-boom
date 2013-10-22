@@ -105,11 +105,12 @@ nsv = nsv_r0; % same number for both.
 prns = prns_r0;
 ndat = ndat_r0;
 
-% turn adr into car
-carL1r0 = -adrL1r0;
-carL1r1 = -adrL1r1;
+for k = 1:length(prns)
+  prns_label{k} = num2str(prns(k));
+end
+
 
 % clean up
 clear valid_dat_r0 valid_dat_r1 adrL1_ adrL2_ psrL1_ have_dat_r0 have_dat_r1 
 clear adrL1r0_ adrL1r1_ psrL1r0_ psrL1r1_ i k time_r0 time_r1 prns_r1 prns_r0
-clear ndat_r0 ndat_r1 nsv_r0 nsv_r1 adrL1r0 adrL1r1
+clear ndat_r0 ndat_r1 nsv_r0 nsv_r1

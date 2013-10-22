@@ -13,9 +13,9 @@
 
 clear all; close all; clc
 fprintf('\nPart 1 - b)\n')
-try
-  matlabpool(3) % comment this out if you don't have the parallel toolbox
-end
+% try
+%   matlabpool(3) % comment this out if you don't have the parallel toolbox
+% end
 part1b_load_data
 kml_file = kml('Lab3_Part1_b');
 tic
@@ -64,8 +64,8 @@ for i = 1:nsv
   [ephem_mat(:,i), ephem_time(i)] = ephem_novatel2gavlab(ephem_mat_novatel(:,i));
   % Find the SV Position at each of the measurement epochs we have
   ephem_mat_ = ephem_mat(:,i);
-  parfor k = 1:ndat
-    tx_time = time(k)%;-transit_time_est;
+  for k = 1:ndat
+    tx_time = time(k);%-transit_time_est;
     [svpos(:,i,k), sv_clkcorr(i,k)] = calc_sv_pos(ephem_mat_, tx_time, transit_time_est);
     sv_clkcorr_psr(i,k) = sv_clkcorr(i,k)*c;
     psrL1corr(i,k) = psrL1(i,k) + sv_clkcorr_psr(i,k);
@@ -74,7 +74,7 @@ end
 
 % Look at SV position LLA just to check the positions
 svpos_lla = zeros(size(svpos));
-parfor i = 1:nsv
+for i = 1:nsv
   for k = 1:ndat
     [lat, lon, alt] = coordutil.wgsxyz2lla(svpos(:,i,k),1000);
     svpos_lla(:,i,k) = [lat, lon, alt];
@@ -136,7 +136,7 @@ iterations = zeros(1,ndat);
 dop = zeros(5,ndat);
 
 % % Estimator Loop
-parfor k = 1:ndat
+for k = 1:ndat
   % find satellites for which data exists at this timestep
   % must find in original data because others will be nonzeros after
   % corrections/smoothing
@@ -149,6 +149,9 @@ parfor k = 1:ndat
   % R = R_coeff*eye(length(have_data));
   % [x_est(:,k), b_est(k), iterations(k)] = PsrPos_WLSE(psr_, svpos_, R,P0, x0,b0, pos_tol,maxit);
   [x_est(:,k), b_est(k), iterations(k), dop(:,k)] = PsrPos_LSE(psr_, svpos_, x0,b0, pos_tol,maxit);
+  if iterations(k) == maxit
+    warning('Hit maximum iterations for sample # %i',k);
+  end
 end
 
 
@@ -157,7 +160,7 @@ end
 % x_mean = mean(x_est,2);
 % [lat_mean, lon_mean, alt_mean] = wgsxyz2lla(x_mean)
 lla_est = zeros(3,ndat);
-parfor k = 1:ndat
+for k = 1:ndat
   [lat,lon,alt] = wgsxyz2lla(x_est(:,k),100000);
   lla_est(:,k) = [lat;lon;alt];
 end
@@ -204,9 +207,9 @@ figure;
     
 %% End matters 
 
-try
-  matlabpool close
-end
+% try
+%   matlabpool close
+% end
 toc
 save part1b_result
 
