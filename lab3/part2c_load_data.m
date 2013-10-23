@@ -105,6 +105,20 @@ nsv = nsv_r0; % same number for both.
 prns = prns_r0;
 ndat = ndat_r0;
 
+
+% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+% Bad coding ahead:
+% Simply leave out SV 12 since it comes in part of the way through the data set.
+psrL1r0 = psrL1r0([1:3,5:end],:);
+psrL1r1 = psrL1r1([1:3,5:end],:);
+adrL1r0 = adrL1r0([1:3,5:end],:);
+adrL1r1 = adrL1r1([1:3,5:end],:);
+prns = prns([1:3,5:end]);
+nsv = nsv-1;
+% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+% PRN Labels (SV #)
 for k = 1:length(prns)
   prns_label{k} = num2str(prns(k));
 end

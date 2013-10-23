@@ -29,7 +29,7 @@ zlim([-ax_sz ax_sz]);
 
 plot3(userpos(1),userpos(2),userpos(3), 'k.', 'MarkerSize', 20)
 
-colors = distinguishable_colors(nsvs);
+colors = distinguishable_colors(nsv);
 
 for k = 1:nsv
   sat_hist = reshape(svpos(:,k,:),3,ndt);

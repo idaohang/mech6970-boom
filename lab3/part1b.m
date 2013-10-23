@@ -23,7 +23,7 @@ tic
 %% Parameters
 
 % Smoothing window (samples @ 1 Hz)
-M = 100;
+M = 1;
 
 % Estimated transit time from SV to user
 c = 299792458;
@@ -58,6 +58,8 @@ sv_clkcorr = zeros(nsv,ndat);
 sv_clkcorr_psr = zeros(size(sv_clkcorr)); % range correction corresponding to clock correction
 svpos = zeros(3,nsv,ndat);
 psrL1corr = zeros(size(psrL1));
+carL1 = -adrL1*wavelengthL1;
+carL1corr = zeros(size(carL1));
 
 for i = 1:nsv
   % get the ephemeris matrix into the correct format
@@ -69,6 +71,7 @@ for i = 1:nsv
     [svpos(:,i,k), sv_clkcorr(i,k)] = calc_sv_pos(ephem_mat_, tx_time, transit_time_est);
     sv_clkcorr_psr(i,k) = sv_clkcorr(i,k)*c;
     psrL1corr(i,k) = psrL1(i,k) + sv_clkcorr_psr(i,k);
+    carL1corr(i,k) = carL1(i,k) + sv_clkcorr_psr(i,k);
   end
 end
 
@@ -92,7 +95,6 @@ clear  i k
 %% Carrier Smoothing
 % Accumulated Doppler (ADR) is the negative of the Carrier Phase
 % 
-carL1 = -adrL1*wavelengthL1;
 
 % Carrier smoothed range estimates - uncorrected for relativistic term
 psrL1_cs1 = zeros(nsv,ndat);
@@ -119,7 +121,7 @@ for k = 2:ndat
     
     % Single Frequency
     psrL1_cs1(i,k) = psrL1(i,k)/M + (M-1)/M*( psrL1_cs1(i,k-1) + carL1(i,k) - carL1(i,k-1));
-    psrL1corr_cs1(i,k) = psrL1corr(i,k)/M + (M-1)/M*( psrL1corr_cs1(i,k-1) + carL1(i,k) - carL1(i,k-1));
+    psrL1corr_cs1(i,k) = psrL1corr(i,k)/M + (M-1)/M*( psrL1corr_cs1(i,k-1) + carL1corr(i,k) - carL1corr(i,k-1));
     
   end
 end
