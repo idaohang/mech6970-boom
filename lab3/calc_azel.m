@@ -26,10 +26,10 @@ az = zeros(1,nsv);
 el = zeros(1,nsv);
 for k = 1:nsv
   enu = rotxyz2enu(rays_ecef(k,:)', reflat,reflon);
-  az(k) = atan2(enu(1),enu(2));
   gnd_proj = norm(enu(1:2),2);
   svdist = norm(enu);
-  el(k) = atan2(enu(3)/svdist,gnd_proj/svdist);
+  az(k) = atan2(enu(1)/svdist, enu(2)/svdist);
+  el(k) = atan2(enu(3)/svdist, gnd_proj/svdist);
 end
 
 if nargout == 1

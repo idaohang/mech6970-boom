@@ -113,15 +113,16 @@ carL1r1corr = carL1r1 + sv_clkcorr_psr;
 
 clear  i k svpos0 ephem_mat_novatel
 
-%% Single Differencing
+%% Single Differencing, using carrier phase DGPS at every time epoch
+% Not in the book, use LSE for problem as arranged in the class notes
 
 carL1r01sd = carL1r1 - carL1r0;
 psrL1r01sd = psrL1r1 - psrL1r0;
 
 % this includes the SV that comes in later - as zero until it arrives
-Nsd01_float_simple = (carL1r01sd- psrL1r01sd)/wavelengthL1;
-amb_cov = cov(Nsd01_float_simple');
-afixed = zeros(size(Nsd01_float_simple));
+Nsd01_float = (carL1r01sd- psrL1r01sd)/wavelengthL1;
+amb_cov = cov(Nsd01_float');
+afixed = zeros(size(Nsd01_float));
 
 rpv01 = zeros(3,ndat);
 rpv_norm = zeros(1,ndat);
@@ -131,7 +132,7 @@ dop = zeros(5,ndat);
 
 for k = 1:ndat
   
-  afixed_cands = LAMBDA(Nsd01_float_simple(:,k),amb_cov)';
+  afixed_cands = LAMBDA(Nsd01_float(:,k),amb_cov)';
   afixed(:,k) = afixed_cands(1,:); % use the first candidate
   
   % Find relative Position
@@ -148,9 +149,10 @@ end
 
 
 %% Plot Single Differencing Results
+% 
 
 figure;
-  plot(Nsd01_float_simple');
+  plot(Nsd01_float');
   title('Single Diff Float Amb Est');
   ylabel('Est   N_{ab}'); xlabel('sample #');
   legend(prns_label); grid on
@@ -167,6 +169,24 @@ figure;
   ylabel('Coordinate (m)'); xlabel('Sample #');
   legend('X','Y','Z'); grid on;
 
+  
+%% Single Differencing, using Carrier DGPS between the first & last epochs
+% book, pg 246
+
+rpv = zeros(3,ndat-1);
+rpv_norm = zeros(1,ndat-1);
+bias = zeros(1,ndat-1);
+for k = 1:ndat-1
+  
+  dcar = carL1r01sd(:,k+1) - carL1r01sd(:,k);
+  G1 = calc_geometry_matrix(ecef_user_est',svpos(:,:,k+1)');
+  G0 = calc_geometry_matrix(ecef_user_est',svpos(:,:,k)');
+  dG = [G1-G0 ones(nsv,1)];
+  est = pinv(dG)*dcar;
+  rpv(:,k) = est(1:3);
+  rpv_norm(k) = norm(est(1:3));
+  bias(k) = est(4);
+end
 
 %% End matters 
 
