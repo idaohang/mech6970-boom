@@ -23,7 +23,7 @@ tic
 %% Parameters
 
 % Smoothing window (samples @ 1 Hz)
-M = 1;
+M = 10;
 
 % Estimated transit time from SV to user
 c = 299792458;

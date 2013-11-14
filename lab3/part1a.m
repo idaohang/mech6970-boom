@@ -140,7 +140,7 @@ for j=200:ndat %:ndat
         
         guess_update=pinv(G)*drho;
         guess=guess+guess_update';
-        fprintf('%25.15f\n',max(abs(guess_update)))
+%         fprintf('%25.15f\n',max(abs(guess_update)))
     end
     DOP=calcDOP(G);
     HDOP(end+1)=DOP(1);

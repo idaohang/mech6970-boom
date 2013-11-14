@@ -1,0 +1,617 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>part2c</title><meta name="generator" content="MATLAB 8.1"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2013-10-25"><meta name="DC.source" content="part2c.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, tt, code { font-size:12px; }
+pre { margin:0px 0px 20px; }
+pre.error { color:red; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">MECH 6970 Lab 3, Part 2, c)</a></li><li><a href="#2">Parameters</a></li><li><a href="#3">Calculate SV Positions from Ephemeris, Relativistic Clock Correction</a></li><li><a href="#4">Single Differencing, using carrier phase DGPS at every time epoch</a></li><li><a href="#5">Attitude Between Antennas</a></li><li><a href="#6">Plot Single Differencing Results</a></li><li><a href="#7">Single Differencing, using Carrier DGPS over diff window</a></li><li><a href="#8">Attitude Between Antennas - Carrier Phase over differencing window</a></li><li><a href="#9">Plot Single Differencing results for calculation over differencing window</a></li><li><a href="#10">End matters</a></li></ul></div><h2>MECH 6970 Lab 3, Part 2, c)<a name="1"></a></h2><p>Robert Cofield</p><p>Note that for this you need the lambda source code in the `misc` folder added to your path</p><p>SV 12 (index 4) comes in just before sample # 200. For this approach, SV 12 was simply excluded from the entire dataset, so that covariance for the floating ambiguity could be calculated</p><pre class="codeinput">clear <span class="string">all</span>; close <span class="string">all</span>; clc
+tic
+part2c_load_data
+<span class="comment">% try</span>
+<span class="comment">%   matlabpool(3) % comment this out if you don't have the parallel toolbox</span>
+<span class="comment">% end</span>
+</pre><h2>Parameters<a name="2"></a></h2><pre class="codeinput">c = 299792458; <span class="comment">% Speed of light, m/s</span>
+fL1 = 1575.42e6; <span class="comment">% L1 frequency, Hz</span>
+fL2 = 1227.60e6; <span class="comment">% L2 frequency, Hz</span>
+wavelengthL1 = c/fL1;
+wavelengthL2 = c/fL2;
+
+lla_user_est = [dms2deg([32,35,26.1]), -dms2deg([85,29,20.61]), 205]; <span class="comment">% lat lon alt</span>
+
+rpv_norm_true = 1.904;
+
+rpv_guess = [.1;.1;.1];
+bias_guess = 1;
+pos_tol = 0.0001;
+maxit = 100;
+</pre><h2>Calculate SV Positions from Ephemeris, Relativistic Clock Correction<a name="3"></a></h2><pre class="codeinput">ecef_user_est = wgslla2xyz(lla_user_est(1),lla_user_est(2),lla_user_est(3));
+
+ephem_mat = zeros(21,nsv);
+ephem_time = zeros(1,nsv); <span class="comment">% gps seconds into subplot(week at which ephem was transmitted</span>
+sv_clkcorr = zeros(nsv,ndat);
+sv_clkcorr_psr = zeros(size(sv_clkcorr)); <span class="comment">% range correction corresponding to clock correction</span>
+svpos = zeros(3,nsv,ndat);
+<span class="comment">% svpos_psr = zeros(nsv,ndat); % pseudorange using estimated user pos and svpos - error checking</span>
+svelev = zeros(nsv,ndat);
+<span class="comment">% psrL1r0corr = zeros(size(psrL1r0));</span>
+<span class="comment">% psrL1r1corr = zeros(size(psrL1r1));</span>
+
+transit_time_est = 20e6/c; <span class="comment">% seconds</span>
+
+<span class="comment">% turn adr into car</span>
+carL1r0 = -adrL1r0*wavelengthL1;
+carL1r1 = -adrL1r1*wavelengthL1;
+
+
+<span class="keyword">for</span> i = 1:nsv
+  <span class="comment">% get the ephemeris matrix into the correct format</span>
+  [ephem_mat(:,i), ephem_time(i)] = ephem_novatel2gavlab(ephem_mat_novatel(:,i));
+  <span class="comment">% Find the SV Position at each of the measurement epochs we have</span>
+  ephem_mat_ = ephem_mat(:,i);
+
+  <span class="keyword">for</span> k = 1:ndat
+  tx_time = time(k);<span class="comment">%-transit_time_est;</span>
+  [svpos(:,i,k), sv_clkcorr(i,k)] = calc_sv_pos(ephem_mat_, tx_time, transit_time_est);
+  sv_clkcorr_psr(i,k) = sv_clkcorr(i,k)*c;
+<span class="comment">%   psrL1r0corr(i,k) = psrL1r0(i,k) + sv_clkcorr_psr(i,k);</span>
+<span class="comment">%   psrL1r1corr(i,k) = psrL1r1(i,k) + sv_clkcorr_psr(i,k);</span>
+<span class="comment">%   carL1r0corr(i,k) = carL1r0(i,k) + sv_clkcorr_psr(i,k);</span>
+<span class="comment">%   carL1r1corr(i,k) = carL1r1(i,k) + sv_clkcorr_psr(i,k);</span>
+
+<span class="comment">%     % check position using approx psr</span>
+<span class="comment">%     if psrL1r0(i,k)</span>
+<span class="comment">%       svpos_psr(i,k) = norm( svpos(:,i,k)-ecef_user_est ,2);</span>
+<span class="comment">%     end</span>
+
+  <span class="keyword">end</span>
+<span class="keyword">end</span>
+
+<span class="comment">% Apply clock corrections</span>
+psrL1r0corr = psrL1r0 + sv_clkcorr_psr;
+psrL1r1corr = psrL1r1 + sv_clkcorr_psr;
+carL1r0corr = carL1r0 + sv_clkcorr_psr;
+carL1r1corr = carL1r1 + sv_clkcorr_psr;
+
+<span class="comment">% % Plot the SV history</span>
+<span class="comment">% plot_svpos(svpos,ecef_user_est,prns_label);</span>
+<span class="comment">%</span>
+<span class="comment">% % find the elevation of each satellite at each epoch</span>
+<span class="comment">% for k = 1:ndat</span>
+<span class="comment">%   [~,svelev(:,k)] = calc_azel(ecef_user_est',reshape(svpos(:,:,k),nsv,3));</span>
+<span class="comment">% end</span>
+
+<span class="comment">% % Find the elevation of each at the beginning</span>
+<span class="comment">% ecef_user_est = wgslla2xyz(lla_user_est(1), lla_user_est(2), lla_user_est(3));</span>
+<span class="comment">% svpos0 = reshape(svpos(:,:,end),8,3);</span>
+<span class="comment">% [~,elevation] = calc_azel(ecef_user_est',svpos0);</span>
+
+<span class="comment">% % Look at SV position LLA just to check the positions</span>
+<span class="comment">% svpos_lla = zeros(size(svpos));</span>
+<span class="comment">% for i = 1:nsv</span>
+<span class="comment">%   for k = 1:ndat</span>
+<span class="comment">%     [lat, lon, alt] = coordutil.wgsxyz2lla(svpos(:,i,k),1000);</span>
+<span class="comment">%     svpos_lla(:,i,k) = [lat, lon, alt];</span>
+<span class="comment">%   end</span>
+<span class="comment">% end</span>
+
+<span class="comment">% % output LLA sv pos initial to KML file</span>
+<span class="comment">% kml_f_svpos0 = kml_file.createFolder('SV Initial Positions');</span>
+<span class="comment">% for k = 1:8</span>
+<span class="comment">%   kml_f_svpos0.point(svpos_lla(2,k,1),svpos_lla(1,k,1),svpos_lla(3,k,1));</span>
+<span class="comment">% end</span>
+
+clear  <span class="string">i</span> <span class="string">k</span> <span class="string">svpos0</span> <span class="string">ephem_mat_novatel</span>
+</pre><h2>Single Differencing, using carrier phase DGPS at every time epoch<a name="4"></a></h2><p>Not in the book, use LSE for problem as arranged in the class notes</p><pre class="codeinput">fprintf(<span class="string">'Single Difference Results for Carrier Phase at every time epoch\n'</span>)
+
+carL1r01sd = carL1r1 - carL1r0;
+psrL1r01sd = psrL1r1 - psrL1r0;
+
+<span class="comment">% this includes the SV that comes in later - as zero until it arrives</span>
+Nsd01_float = (carL1r01sd- psrL1r01sd)/wavelengthL1;
+amb_cov_all = cov(Nsd01_float');
+afixed = zeros(size(Nsd01_float));
+
+rpv01 = zeros(3,ndat);
+rpv_norm = zeros(1,ndat);
+bias01 = zeros(1,ndat);
+iterations = zeros(1,ndat);
+dop = zeros(5,ndat);
+rpv_norm_error = zeros(1,ndat);
+
+<span class="keyword">for</span> k = 1:ndat
+
+  afixed_cands = LAMBDA(Nsd01_float(:,k),amb_cov_all)';
+  afixed(:,k) = afixed_cands(1,:); <span class="comment">% use the first candidate</span>
+
+  <span class="comment">% Find relative Position</span>
+  carsd = carL1r01sd(:,k);
+  af = afixed(:,k);
+  svp = reshape(svpos(:,:,k),nsv,3);
+  [rpv_soln, bias_soln, itx, dop_] = CarSfRpvSD_LSE(carsd,af,wavelengthL1,svp,rpv_guess,bias_guess,pos_tol,maxit);
+  rpv01(:,k) = rpv_soln;
+  bias01(k) = bias_soln;
+  iterations(k) = itx;
+  dop(:,k) = dop_;
+  rpv_norm(k) = norm(rpv_soln);
+  rpv_norm_error(k) = rpv_norm_true-rpv_norm(k);
+<span class="keyword">end</span>
+
+fprintf(<span class="string">'\tMean Range Error: %8f m\n'</span>,mean(rpv_norm_error));
+fprintf(<span class="string">'\tStd Range Error: %8f m\n'</span>,std(rpv_norm_error));
+</pre><pre class="codeoutput">Single Difference Results for Carrier Phase at every time epoch
+	Mean Range Error: 0.360212 m
+	Std Range Error: 0.120458 m
+</pre><h2>Attitude Between Antennas<a name="5"></a></h2><pre class="codeinput">rpv_mean = mean(rpv01,2);
+rpv_mean_enu = coordutil.rotxyz2enu(rpv_mean, lla_user_est(1),lla_user_est(2));
+azimuth = rad2deg(atan2(rpv_mean_enu(1),rpv_mean_enu(2)));
+ground_proj = norm(rpv_mean_enu(1:2));
+elevation = rad2deg(atan2(rpv_mean_enu(3),ground_proj));
+
+fprintf(<span class="string">'\tAzimuth: %8f deg\n\tElevation: %8f deg\n'</span>,azimuth,elevation);
+</pre><pre class="codeoutput">	Azimuth: 161.316736 deg
+	Elevation: 41.820444 deg
+</pre><h2>Plot Single Differencing Results<a name="6"></a></h2><pre class="codeinput">figure;
+  plot(Nsd01_float');
+  title(<span class="string">'Single Diff Float Amb Est at each epoch'</span>);
+  ylabel(<span class="string">'Est   N_{ab}'</span>); xlabel(<span class="string">'sample #'</span>);
+  legend(prns_label); grid <span class="string">on</span>
+
+figure;
+  plot(afixed');
+  title(<span class="string">'Single Diff Fixed Amb Est at each epoch'</span>);
+  ylabel(<span class="string">'Est   N_{ab}'</span>); xlabel(<span class="string">'sample #'</span>);
+  legend(prns_label); grid <span class="string">on</span>
+
+figure;
+  plot(rpv01')
+  title(<span class="string">'RPV ECEF Solution over samples at each epoch'</span>);
+  ylabel(<span class="string">'Coordinate (m)'</span>); xlabel(<span class="string">'Sample #'</span>);
+  legend(<span class="string">'X'</span>,<span class="string">'Y'</span>,<span class="string">'Z'</span>); grid <span class="string">on</span>;
+
+figure;
+  plot(rpv_norm_error);
+  title(<span class="string">'RPV Norm Error at each epoch'</span>);
+  ylabel(<span class="string">'Error (m)'</span>); xlabel(<span class="string">'Sample #'</span>);
+  grid <span class="string">on</span>;
+
+figure;
+  plot3(0,0,0,<span class="string">'k.'</span>,<span class="string">'MarkerSize'</span>,30); hold <span class="string">on</span>
+  <span class="keyword">for</span> k = 1:ndat
+    plot3([0 rpv01(1,k)],[0 rpv01(2,k)],[0 rpv01(3,k)],<span class="string">'-b.'</span>)
+  <span class="keyword">end</span>
+  figutil.xyzlabel; title(<span class="string">'ECEF Components of RPV for all samples at each epoch'</span>);
+  grid <span class="string">on</span>; axis <span class="string">equal</span>;
+</pre><img vspace="5" hspace="5" src="part2c_01.png" alt=""> <img vspace="5" hspace="5" src="part2c_02.png" alt=""> <img vspace="5" hspace="5" src="part2c_03.png" alt=""> <img vspace="5" hspace="5" src="part2c_04.png" alt=""> <img vspace="5" hspace="5" src="part2c_05.png" alt=""> <h2>Single Differencing, using Carrier DGPS over diff window<a name="7"></a></h2><p>book, pg 246</p><pre class="codeinput">fprintf(<span class="string">'Single Difference results for Carrier Phase over Differencing Window\n'</span>);
+
+window = 100; <span class="comment">% 1/2 the number of samples to spread diff by</span>
+
+rpv01 = zeros(3,ndat-2*window);
+rpv_norm = zeros(1,ndat-2*window);
+rpv_norm_error = zeros(1,ndat-2*window);
+bias = zeros(1,ndat-2*window);
+dop = zeros(5,-2*window);
+
+
+<span class="keyword">for</span> k = 1+window:ndat-window
+
+  dcar = carL1r01sd(:,k+window) - carL1r01sd(:,k-window);
+  G1 = calc_geometry_matrix(ecef_user_est',svpos(:,:,k+window)');
+  G0 = calc_geometry_matrix(ecef_user_est',svpos(:,:,k-window)');
+  dG = [G1-G0 ones(nsv,1)];
+  est = pinv(dG)*dcar;
+  rpv01(:,k-window) = est(1:3);
+  rpv_norm(k-window) = norm(est(1:3));
+  rpv_norm_error(k-window) = rpv_norm_true - rpv_norm(k-window);
+  bias(k-window) = est(4);
+  dop(:,k-window) = gps.calcDOP(dG);
+
+<span class="keyword">end</span>
+
+fprintf(<span class="string">'\tMean Range Error: %8f m\n'</span>,mean(rpv_norm_error));
+fprintf(<span class="string">'\tStd Range Error: %8f m\n'</span>,std(rpv_norm_error));
+</pre><pre class="codeoutput">Single Difference results for Carrier Phase over Differencing Window
+	Mean Range Error: -0.390377 m
+	Std Range Error: 0.097033 m
+</pre><h2>Attitude Between Antennas - Carrier Phase over differencing window<a name="8"></a></h2><pre class="codeinput">rpv_mean = mean(rpv01,2);
+rpv_mean_enu = coordutil.rotxyz2enu(rpv_mean, lla_user_est(1),lla_user_est(2));
+azimuth = -rad2deg(atan2(rpv_mean_enu(1),rpv_mean_enu(2)));
+ground_proj = norm(rpv_mean_enu(1:2));
+elevation = -rad2deg(atan2(rpv_mean_enu(3),ground_proj));
+
+fprintf(<span class="string">'\tAzimuth: %8f deg\n\tElevation: %8f deg\n'</span>,azimuth,elevation);
+</pre><pre class="codeoutput">	Azimuth: 110.026365 deg
+	Elevation: 41.795599 deg
+</pre><h2>Plot Single Differencing results for calculation over differencing window<a name="9"></a></h2><pre class="codeinput">figure;
+  plot(Nsd01_float');
+  title(<span class="string">'Single Diff Float Amb Est over diff window'</span>);
+  ylabel(<span class="string">'Est   N_{ab}'</span>); xlabel(<span class="string">'sample #'</span>);
+  legend(prns_label); grid <span class="string">on</span>
+
+figure;
+  plot(afixed');
+  title(<span class="string">'Single Diff Fixed Amb Est over diff window'</span>);
+  ylabel(<span class="string">'Est   N_{ab}'</span>); xlabel(<span class="string">'sample #'</span>);
+  legend(prns_label); grid <span class="string">on</span>
+
+figure;
+  plot(rpv01')
+  title(<span class="string">'RPV ECEF Solution over samples over diff window'</span>);
+  ylabel(<span class="string">'Coordinate (m)'</span>); xlabel(<span class="string">'Sample #'</span>);
+  legend(<span class="string">'X'</span>,<span class="string">'Y'</span>,<span class="string">'Z'</span>); grid <span class="string">on</span>;
+
+figure;
+  plot(rpv_norm_error);
+  title(<span class="string">'RPV Norm Error over diff window'</span>);
+  ylabel(<span class="string">'Error (m)'</span>); xlabel(<span class="string">'Sample #'</span>);
+  grid <span class="string">on</span>;
+
+figure;
+  plot3(0,0,0,<span class="string">'k.'</span>,<span class="string">'MarkerSize'</span>,30); hold <span class="string">on</span>
+  <span class="keyword">for</span> k = 1:length(rpv01)
+    plot3([0 rpv01(1,k)],[0 rpv01(2,k)],[0 rpv01(3,k)],<span class="string">'-b.'</span>)
+  <span class="keyword">end</span>
+  figutil.xyzlabel; title(<span class="string">'ECEF Components of RPV for all samples over diff window'</span>);
+  grid <span class="string">on</span>; axis <span class="string">equal</span>;
+</pre><img vspace="5" hspace="5" src="part2c_06.png" alt=""> <img vspace="5" hspace="5" src="part2c_07.png" alt=""> <img vspace="5" hspace="5" src="part2c_08.png" alt=""> <img vspace="5" hspace="5" src="part2c_09.png" alt=""> <img vspace="5" hspace="5" src="part2c_10.png" alt=""> <h2>End matters<a name="10"></a></h2><pre class="codeinput"><span class="comment">% try</span>
+<span class="comment">%   matlabpool close</span>
+<span class="comment">% end</span>
+toc
+</pre><pre class="codeoutput">Elapsed time is 9.204618 seconds.
+</pre><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2013a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% MECH 6970 Lab 3, Part 2, c)
+% 
+% Robert Cofield
+% 
+% Note that for this you need the lambda source code in the `misc` folder added
+% to your path
+% 
+% SV 12 (index 4) comes in just before sample # 200. For this approach, SV 12
+% was simply excluded from the entire dataset, so that covariance for the
+% floating ambiguity could be calculated
+% 
+clear all; close all; clc
+tic
+part2c_load_data
+% try
+%   matlabpool(3) % comment this out if you don't have the parallel toolbox
+% end
+
+
+%% Parameters
+
+c = 299792458; % Speed of light, m/s
+fL1 = 1575.42e6; % L1 frequency, Hz
+fL2 = 1227.60e6; % L2 frequency, Hz
+wavelengthL1 = c/fL1;
+wavelengthL2 = c/fL2;
+
+lla_user_est = [dms2deg([32,35,26.1]), -dms2deg([85,29,20.61]), 205]; % lat lon alt
+
+rpv_norm_true = 1.904;
+
+rpv_guess = [.1;.1;.1];
+bias_guess = 1;
+pos_tol = 0.0001;
+maxit = 100;
+
+
+%% Calculate SV Positions from Ephemeris, Relativistic Clock Correction
+
+ecef_user_est = wgslla2xyz(lla_user_est(1),lla_user_est(2),lla_user_est(3));
+
+ephem_mat = zeros(21,nsv);
+ephem_time = zeros(1,nsv); % gps seconds into subplot(week at which ephem was transmitted
+sv_clkcorr = zeros(nsv,ndat);
+sv_clkcorr_psr = zeros(size(sv_clkcorr)); % range correction corresponding to clock correction
+svpos = zeros(3,nsv,ndat);
+% svpos_psr = zeros(nsv,ndat); % pseudorange using estimated user pos and svpos - error checking
+svelev = zeros(nsv,ndat);
+% psrL1r0corr = zeros(size(psrL1r0));
+% psrL1r1corr = zeros(size(psrL1r1));
+
+transit_time_est = 20e6/c; % seconds
+
+% turn adr into car
+carL1r0 = -adrL1r0*wavelengthL1;
+carL1r1 = -adrL1r1*wavelengthL1;
+
+
+for i = 1:nsv
+  % get the ephemeris matrix into the correct format
+  [ephem_mat(:,i), ephem_time(i)] = ephem_novatel2gavlab(ephem_mat_novatel(:,i));
+  % Find the SV Position at each of the measurement epochs we have
+  ephem_mat_ = ephem_mat(:,i);
+    
+  for k = 1:ndat
+  tx_time = time(k);%-transit_time_est;
+  [svpos(:,i,k), sv_clkcorr(i,k)] = calc_sv_pos(ephem_mat_, tx_time, transit_time_est);
+  sv_clkcorr_psr(i,k) = sv_clkcorr(i,k)*c;
+%   psrL1r0corr(i,k) = psrL1r0(i,k) + sv_clkcorr_psr(i,k);
+%   psrL1r1corr(i,k) = psrL1r1(i,k) + sv_clkcorr_psr(i,k);
+%   carL1r0corr(i,k) = carL1r0(i,k) + sv_clkcorr_psr(i,k);
+%   carL1r1corr(i,k) = carL1r1(i,k) + sv_clkcorr_psr(i,k);
+    
+%     % check position using approx psr
+%     if psrL1r0(i,k)
+%       svpos_psr(i,k) = norm( svpos(:,i,k)-ecef_user_est ,2);
+%     end
+    
+  end
+end
+
+% Apply clock corrections
+psrL1r0corr = psrL1r0 + sv_clkcorr_psr;
+psrL1r1corr = psrL1r1 + sv_clkcorr_psr;
+carL1r0corr = carL1r0 + sv_clkcorr_psr;
+carL1r1corr = carL1r1 + sv_clkcorr_psr;
+    
+% % Plot the SV history
+% plot_svpos(svpos,ecef_user_est,prns_label);
+% 
+% % find the elevation of each satellite at each epoch
+% for k = 1:ndat
+%   [~,svelev(:,k)] = calc_azel(ecef_user_est',reshape(svpos(:,:,k),nsv,3));
+% end
+
+% % Find the elevation of each at the beginning
+% ecef_user_est = wgslla2xyz(lla_user_est(1), lla_user_est(2), lla_user_est(3));
+% svpos0 = reshape(svpos(:,:,end),8,3);
+% [~,elevation] = calc_azel(ecef_user_est',svpos0);
+
+% % Look at SV position LLA just to check the positions
+% svpos_lla = zeros(size(svpos));
+% for i = 1:nsv
+%   for k = 1:ndat
+%     [lat, lon, alt] = coordutil.wgsxyz2lla(svpos(:,i,k),1000);
+%     svpos_lla(:,i,k) = [lat, lon, alt];
+%   end
+% end
+
+% % output LLA sv pos initial to KML file
+% kml_f_svpos0 = kml_file.createFolder('SV Initial Positions');
+% for k = 1:8
+%   kml_f_svpos0.point(svpos_lla(2,k,1),svpos_lla(1,k,1),svpos_lla(3,k,1));
+% end
+
+clear  i k svpos0 ephem_mat_novatel
+
+%% Single Differencing, using carrier phase DGPS at every time epoch
+% Not in the book, use LSE for problem as arranged in the class notes
+fprintf('Single Difference Results for Carrier Phase at every time epoch\n')
+
+carL1r01sd = carL1r1 - carL1r0;
+psrL1r01sd = psrL1r1 - psrL1r0;
+
+% this includes the SV that comes in later - as zero until it arrives
+Nsd01_float = (carL1r01sd- psrL1r01sd)/wavelengthL1;
+amb_cov_all = cov(Nsd01_float');
+afixed = zeros(size(Nsd01_float));
+
+rpv01 = zeros(3,ndat);
+rpv_norm = zeros(1,ndat);
+bias01 = zeros(1,ndat);
+iterations = zeros(1,ndat);
+dop = zeros(5,ndat);
+rpv_norm_error = zeros(1,ndat);
+
+for k = 1:ndat
+  
+  afixed_cands = LAMBDA(Nsd01_float(:,k),amb_cov_all)';
+  afixed(:,k) = afixed_cands(1,:); % use the first candidate
+  
+  % Find relative Position
+  carsd = carL1r01sd(:,k);
+  af = afixed(:,k);
+  svp = reshape(svpos(:,:,k),nsv,3);
+  [rpv_soln, bias_soln, itx, dop_] = CarSfRpvSD_LSE(carsd,af,wavelengthL1,svp,rpv_guess,bias_guess,pos_tol,maxit);
+  rpv01(:,k) = rpv_soln;
+  bias01(k) = bias_soln;
+  iterations(k) = itx;
+  dop(:,k) = dop_;
+  rpv_norm(k) = norm(rpv_soln);
+  rpv_norm_error(k) = rpv_norm_true-rpv_norm(k);
+end
+
+fprintf('\tMean Range Error: %8f m\n',mean(rpv_norm_error));
+fprintf('\tStd Range Error: %8f m\n',std(rpv_norm_error));
+
+
+%% Attitude Between Antennas
+
+rpv_mean = mean(rpv01,2);
+rpv_mean_enu = coordutil.rotxyz2enu(rpv_mean, lla_user_est(1),lla_user_est(2));
+azimuth = rad2deg(atan2(rpv_mean_enu(1),rpv_mean_enu(2)));
+ground_proj = norm(rpv_mean_enu(1:2));
+elevation = rad2deg(atan2(rpv_mean_enu(3),ground_proj));
+
+fprintf('\tAzimuth: %8f deg\n\tElevation: %8f deg\n',azimuth,elevation);
+
+
+%% Plot Single Differencing Results
+% 
+
+figure;
+  plot(Nsd01_float');
+  title('Single Diff Float Amb Est at each epoch');
+  ylabel('Est   N_{ab}'); xlabel('sample #');
+  legend(prns_label); grid on
+  
+figure;
+  plot(afixed');
+  title('Single Diff Fixed Amb Est at each epoch');
+  ylabel('Est   N_{ab}'); xlabel('sample #');
+  legend(prns_label); grid on
+  
+figure;
+  plot(rpv01')
+  title('RPV ECEF Solution over samples at each epoch');
+  ylabel('Coordinate (m)'); xlabel('Sample #');
+  legend('X','Y','Z'); grid on;
+  
+figure;
+  plot(rpv_norm_error);
+  title('RPV Norm Error at each epoch');
+  ylabel('Error (m)'); xlabel('Sample #');
+  grid on; 
+
+figure;
+  plot3(0,0,0,'k.','MarkerSize',30); hold on
+  for k = 1:ndat
+    plot3([0 rpv01(1,k)],[0 rpv01(2,k)],[0 rpv01(3,k)],'-b.')
+  end
+  figutil.xyzlabel; title('ECEF Components of RPV for all samples at each epoch');
+  grid on; axis equal;
+  
+  
+  
+%% Single Differencing, using Carrier DGPS over diff window
+% book, pg 246
+fprintf('Single Difference results for Carrier Phase over Differencing Window\n');
+
+window = 100; % 1/2 the number of samples to spread diff by
+
+rpv01 = zeros(3,ndat-2*window);
+rpv_norm = zeros(1,ndat-2*window);
+rpv_norm_error = zeros(1,ndat-2*window);
+bias = zeros(1,ndat-2*window);
+dop = zeros(5,-2*window);
+
+
+for k = 1+window:ndat-window
+  
+  dcar = carL1r01sd(:,k+window) - carL1r01sd(:,k-window);
+  G1 = calc_geometry_matrix(ecef_user_est',svpos(:,:,k+window)');
+  G0 = calc_geometry_matrix(ecef_user_est',svpos(:,:,k-window)');
+  dG = [G1-G0 ones(nsv,1)];
+  est = pinv(dG)*dcar;
+  rpv01(:,k-window) = est(1:3);
+  rpv_norm(k-window) = norm(est(1:3));
+  rpv_norm_error(k-window) = rpv_norm_true - rpv_norm(k-window);
+  bias(k-window) = est(4);
+  dop(:,k-window) = gps.calcDOP(dG);
+  
+end
+
+fprintf('\tMean Range Error: %8f m\n',mean(rpv_norm_error));
+fprintf('\tStd Range Error: %8f m\n',std(rpv_norm_error));
+
+%% Attitude Between Antennas - Carrier Phase over differencing window
+
+rpv_mean = mean(rpv01,2);
+rpv_mean_enu = coordutil.rotxyz2enu(rpv_mean, lla_user_est(1),lla_user_est(2));
+azimuth = -rad2deg(atan2(rpv_mean_enu(1),rpv_mean_enu(2)));
+ground_proj = norm(rpv_mean_enu(1:2));
+elevation = -rad2deg(atan2(rpv_mean_enu(3),ground_proj));
+
+fprintf('\tAzimuth: %8f deg\n\tElevation: %8f deg\n',azimuth,elevation);
+
+
+
+%% Plot Single Differencing results for calculation over differencing window
+
+figure;
+  plot(Nsd01_float');
+  title('Single Diff Float Amb Est over diff window');
+  ylabel('Est   N_{ab}'); xlabel('sample #');
+  legend(prns_label); grid on
+  
+figure;
+  plot(afixed');
+  title('Single Diff Fixed Amb Est over diff window');
+  ylabel('Est   N_{ab}'); xlabel('sample #');
+  legend(prns_label); grid on
+  
+figure;
+  plot(rpv01')
+  title('RPV ECEF Solution over samples over diff window');
+  ylabel('Coordinate (m)'); xlabel('Sample #');
+  legend('X','Y','Z'); grid on;
+  
+figure;
+  plot(rpv_norm_error);
+  title('RPV Norm Error over diff window');
+  ylabel('Error (m)'); xlabel('Sample #');
+  grid on; 
+
+figure;
+  plot3(0,0,0,'k.','MarkerSize',30); hold on
+  for k = 1:length(rpv01)
+    plot3([0 rpv01(1,k)],[0 rpv01(2,k)],[0 rpv01(3,k)],'-b.')
+  end
+  figutil.xyzlabel; title('ECEF Components of RPV for all samples over diff window');
+  grid on; axis equal;
+  
+
+
+%% End matters 
+
+% try
+%   matlabpool close
+% end
+toc
+
+
+##### SOURCE END #####
+--></body></html>

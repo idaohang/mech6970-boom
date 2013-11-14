@@ -27,6 +27,8 @@ wavelengthL2 = c/fL2;
 
 lla_user_est = [dms2deg([32,35,26.1]), -dms2deg([85,29,20.61]), 205]; % lat lon alt
 
+rpv_norm_true = 1.904;
+
 rpv_guess = [.1;.1;.1];
 bias_guess = 1;
 pos_tol = 0.0001;
@@ -115,13 +117,14 @@ clear  i k svpos0 ephem_mat_novatel
 
 %% Single Differencing, using carrier phase DGPS at every time epoch
 % Not in the book, use LSE for problem as arranged in the class notes
+fprintf('Single Difference Results for Carrier Phase at every time epoch\n')
 
 carL1r01sd = carL1r1 - carL1r0;
 psrL1r01sd = psrL1r1 - psrL1r0;
 
 % this includes the SV that comes in later - as zero until it arrives
 Nsd01_float = (carL1r01sd- psrL1r01sd)/wavelengthL1;
-amb_cov = cov(Nsd01_float');
+amb_cov_all = cov(Nsd01_float');
 afixed = zeros(size(Nsd01_float));
 
 rpv01 = zeros(3,ndat);
@@ -129,10 +132,11 @@ rpv_norm = zeros(1,ndat);
 bias01 = zeros(1,ndat);
 iterations = zeros(1,ndat);
 dop = zeros(5,ndat);
+rpv_norm_error = zeros(1,ndat);
 
 for k = 1:ndat
   
-  afixed_cands = LAMBDA(Nsd01_float(:,k),amb_cov)';
+  afixed_cands = LAMBDA(Nsd01_float(:,k),amb_cov_all)';
   afixed(:,k) = afixed_cands(1,:); % use the first candidate
   
   % Find relative Position
@@ -145,7 +149,22 @@ for k = 1:ndat
   iterations(k) = itx;
   dop(:,k) = dop_;
   rpv_norm(k) = norm(rpv_soln);
+  rpv_norm_error(k) = rpv_norm_true-rpv_norm(k);
 end
+
+fprintf('\tMean Range Error: %8f m\n',mean(rpv_norm_error));
+fprintf('\tStd Range Error: %8f m\n',std(rpv_norm_error));
+
+
+%% Attitude Between Antennas
+
+rpv_mean = mean(rpv01,2);
+rpv_mean_enu = coordutil.rotxyz2enu(rpv_mean, lla_user_est(1),lla_user_est(2));
+azimuth = rad2deg(atan2(rpv_mean_enu(1),rpv_mean_enu(2)));
+ground_proj = norm(rpv_mean_enu(1:2));
+elevation = rad2deg(atan2(rpv_mean_enu(3),ground_proj));
+
+fprintf('\tAzimuth: %8f deg\n\tElevation: %8f deg\n',azimuth,elevation);
 
 
 %% Plot Single Differencing Results
@@ -153,40 +172,116 @@ end
 
 figure;
   plot(Nsd01_float');
-  title('Single Diff Float Amb Est');
+  title('Single Diff Float Amb Est at each epoch');
   ylabel('Est   N_{ab}'); xlabel('sample #');
   legend(prns_label); grid on
   
 figure;
   plot(afixed');
-  title('Single Diff Fixed Amb Est');
+  title('Single Diff Fixed Amb Est at each epoch');
   ylabel('Est   N_{ab}'); xlabel('sample #');
   legend(prns_label); grid on
   
 figure;
   plot(rpv01')
-  title('RPV ECEF Solution over samples');
+  title('RPV ECEF Solution over samples at each epoch');
   ylabel('Coordinate (m)'); xlabel('Sample #');
   legend('X','Y','Z'); grid on;
-
   
-%% Single Differencing, using Carrier DGPS between the first & last epochs
+figure;
+  plot(rpv_norm_error);
+  title('RPV Norm Error at each epoch');
+  ylabel('Error (m)'); xlabel('Sample #');
+  grid on; 
+
+figure;
+  plot3(0,0,0,'k.','MarkerSize',30); hold on
+  for k = 1:ndat
+    plot3([0 rpv01(1,k)],[0 rpv01(2,k)],[0 rpv01(3,k)],'-b.')
+  end
+  figutil.xyzlabel; title('ECEF Components of RPV for all samples at each epoch');
+  grid on; axis equal;
+  
+  
+  
+%% Single Differencing, using Carrier DGPS over diff window
 % book, pg 246
+fprintf('Single Difference results for Carrier Phase over Differencing Window\n');
 
-rpv = zeros(3,ndat-1);
-rpv_norm = zeros(1,ndat-1);
-bias = zeros(1,ndat-1);
-for k = 1:ndat-1
+window = 100; % 1/2 the number of samples to spread diff by
+
+rpv01 = zeros(3,ndat-2*window);
+rpv_norm = zeros(1,ndat-2*window);
+rpv_norm_error = zeros(1,ndat-2*window);
+bias = zeros(1,ndat-2*window);
+dop = zeros(5,-2*window);
+
+
+for k = 1+window:ndat-window
   
-  dcar = carL1r01sd(:,k+1) - carL1r01sd(:,k);
-  G1 = calc_geometry_matrix(ecef_user_est',svpos(:,:,k+1)');
-  G0 = calc_geometry_matrix(ecef_user_est',svpos(:,:,k)');
+  dcar = carL1r01sd(:,k+window) - carL1r01sd(:,k-window);
+  G1 = calc_geometry_matrix(ecef_user_est',svpos(:,:,k+window)');
+  G0 = calc_geometry_matrix(ecef_user_est',svpos(:,:,k-window)');
   dG = [G1-G0 ones(nsv,1)];
   est = pinv(dG)*dcar;
-  rpv(:,k) = est(1:3);
-  rpv_norm(k) = norm(est(1:3));
-  bias(k) = est(4);
+  rpv01(:,k-window) = est(1:3);
+  rpv_norm(k-window) = norm(est(1:3));
+  rpv_norm_error(k-window) = rpv_norm_true - rpv_norm(k-window);
+  bias(k-window) = est(4);
+  dop(:,k-window) = gps.calcDOP(dG);
+  
 end
+
+fprintf('\tMean Range Error: %8f m\n',mean(rpv_norm_error));
+fprintf('\tStd Range Error: %8f m\n',std(rpv_norm_error));
+
+%% Attitude Between Antennas - Carrier Phase over differencing window
+
+rpv_mean = mean(rpv01,2);
+rpv_mean_enu = coordutil.rotxyz2enu(rpv_mean, lla_user_est(1),lla_user_est(2));
+azimuth = -rad2deg(atan2(rpv_mean_enu(1),rpv_mean_enu(2)));
+ground_proj = norm(rpv_mean_enu(1:2));
+elevation = -rad2deg(atan2(rpv_mean_enu(3),ground_proj));
+
+fprintf('\tAzimuth: %8f deg\n\tElevation: %8f deg\n',azimuth,elevation);
+
+
+
+%% Plot Single Differencing results for calculation over differencing window
+
+figure;
+  plot(Nsd01_float');
+  title('Single Diff Float Amb Est over diff window');
+  ylabel('Est   N_{ab}'); xlabel('sample #');
+  legend(prns_label); grid on
+  
+figure;
+  plot(afixed');
+  title('Single Diff Fixed Amb Est over diff window');
+  ylabel('Est   N_{ab}'); xlabel('sample #');
+  legend(prns_label); grid on
+  
+figure;
+  plot(rpv01')
+  title('RPV ECEF Solution over samples over diff window');
+  ylabel('Coordinate (m)'); xlabel('Sample #');
+  legend('X','Y','Z'); grid on;
+  
+figure;
+  plot(rpv_norm_error);
+  title('RPV Norm Error over diff window');
+  ylabel('Error (m)'); xlabel('Sample #');
+  grid on; 
+
+figure;
+  plot3(0,0,0,'k.','MarkerSize',30); hold on
+  for k = 1:length(rpv01)
+    plot3([0 rpv01(1,k)],[0 rpv01(2,k)],[0 rpv01(3,k)],'-b.')
+  end
+  figutil.xyzlabel; title('ECEF Components of RPV for all samples over diff window');
+  grid on; axis equal;
+  
+
 
 %% End matters 
 
