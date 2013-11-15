@@ -3,6 +3,8 @@
 % 
 % 
 clear all; close all; clc;
+tic 
+try matlabpool 2; catch e, disp(e); end
 
 %% constants
 
@@ -48,18 +50,33 @@ fdopp = linspace(-fdopp_bound, fdopp_bound, nfdopp+1); % fdopp in Hz
 feff = fIF - fdopp; % effective frequency, Hz
 
 tau_idx = 0.5*upsample; % how many data indices correspond to tau
-y = zeros(32,N); % signal replica for correlation
+tau = tau_idx:tau_idx:1023*upsample; % vector of tau indices to use
 
-for i = 1:32
-  for n = 1:N
-    y(i,n) =
+y = cell(1,32);
+parfor sv = 1:32 % generate correlation grid for each SV
+  y{sv} = zeros(length(tau),length(fdopp)); % signal replica for correlation
+  for t_ = 1:length(tau) % loop over time shift values
+    for fd_ = 1:length(fdopp); % loop over doppler frequency values
+      tau_ = tau(t_);
+      fdopp_ = fdopp(fd_);
+      f_eff = fIF + fdopp_; % effective frequency
+      for n = 1:length(T); % summation over all time values
+        hf_term = exp(1j*4*pi*f_eff*T(n));
+        prn_shifted = shift(prn(32,:),n-tau_);
+        prn_value = prn_shifted(1);
+        y{sv}(t_,fd_) = y{sv}(t_,fd_) + ... %% !!! FINISH ME
+          sqrt(2*PC1)*prn_value;
+      end
+      y{sv}(t_,fd_) = y{sv}(t_,fd_)/N; % average by dividing by number of epochs
+    end
   end
-% corrmat = zeros(1023,
+end
+    
+  
 
 
 
-
-
-
-
+%% End matters
+try matlabpool close; catch e, disp(e); end
+toc
 
