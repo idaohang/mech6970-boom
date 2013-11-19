@@ -94,6 +94,7 @@ for sv = 4
   tau_soln(sv) = tau(tau_soln_idx(sv));
 end
 
+fprintf('\nSOLUTION:\n')
 fprintf('\tDoppler Shift: %f Hz\n',fdopp_soln(4))
 fprintf('\tTau (Arrival Time): \n\t\t%f samples\n\t\t%f chips\n',tau_soln(4),tau_soln(4)/upsample)
 
