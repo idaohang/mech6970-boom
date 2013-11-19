@@ -58,13 +58,13 @@ fdopp_soln_idx = zeros(1,32);
 tau_soln = zeros(1,32);
 tau_soln_idx = zeros(1,32);
 % parfor sv = 1:32 % generate correlation grid for each SV
-for sv = 4;
+for sv = 17;
   y{1,sv} = zeros(length(tau),length(fdopp)); % signal replica for correlation
   for t_ = 1:length(tau) % loop over time shift values
     prn_shifted = shift(prn(sv,:),tau(t_));
     for fd_ = 1:length(fdopp); % loop over doppler frequency values
-      sin_ = imag(exp(1j*2*pi*feff(fd_)));
-      cos_ = real(exp(1j*2*pi*feff(fd_)));
+      sin_ = imag(exp(1j*2*pi*feff(fd_)*T));
+      cos_ = real(exp(1j*2*pi*feff(fd_)*T));
       I = signal1.*prn_shifted.*sin_;
       Q = signal1.*prn_shifted.*cos_;
       y{1,sv}(t_,fd_) = sum(I)^2 + sum(Q)^2;
@@ -83,7 +83,7 @@ end
 %% Plot SV 4
     
 figure;
-  surf(fdopp,tau,y{4})
+  surf(fdopp,tau,y{sv})
   xlabel('Doppler Frequency (Hz)'); ylabel('Sample Shifts'); zlabel('Correlation');
 
 
