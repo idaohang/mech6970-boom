@@ -1,6 +1,10 @@
 %% MECH 6970 Lab4 Part 1, a)
 % Robert Cofield
 % 
+% NOTE !!! :
+% The bit-level operations and array sizing for this 1ms analysis should not be
+% exactly replicated for the 10ms part.
+%   - in particular, the calculation of the upsample rate needs to be redone.
 % 
 clear all; close all; clc;
 tic 
@@ -17,9 +21,10 @@ fIF = 4.1304e6; % intermediate frequency
 Ts = 1/fs; % sampling period
 integration_period = 1.0e-3; % grab 1ms of data
 Tca = 1.023e-6; % L1 C/A code period
+tau_chip_size = 0.5; % how many chips to use for tau
 
-nfdopp = 50; % number of fdopp bins - 1
-fdopp_bound = 10e3; % boundaries on either side of fIF to search for fdopp
+nfdopp = 25; % number of fdopp bins - 1
+fdopp_bound = 5e3; % boundaries on either side of fIF to search for fdopp
 PC1 = -158.5; % Power of L1 C/A code, dBW
 
 
@@ -38,7 +43,7 @@ upsample = N/1023;
 clear filename fid bytes_to_read ans
 
 
-%% 
+%% Acquisition
 
 % PRN replica
 % generate PRNS for each satellite at the appropriate frequency
@@ -49,7 +54,7 @@ dfdopp = 2*fdopp_bound/nfdopp; % delta fdopp, Hz
 fdopp = linspace(-fdopp_bound, fdopp_bound, nfdopp+1); % fdopp in Hz
 feff = fIF + fdopp; % effective frequency, Hz
 
-tau_idx = 0.5*upsample; % how many data indices correspond to tau
+tau_idx = tau_chip_size*upsample; % how many data indices correspond to tau
 tau = tau_idx:tau_idx:N; % vector of tau indices to use
 
 y = cell(1,32); % each cell index contains an array for each sv
@@ -58,7 +63,7 @@ fdopp_soln_idx = zeros(1,32);
 tau_soln = zeros(1,32);
 tau_soln_idx = zeros(1,32);
 % parfor sv = 1:32 % generate correlation grid for each SV
-for sv = 17;
+for sv = 4
   y{1,sv} = zeros(length(tau),length(fdopp)); % signal replica for correlation
   for t_ = 1:length(tau) % loop over time shift values
     prn_shifted = shift(prn(sv,:),tau(t_));
@@ -79,13 +84,17 @@ for sv = 17;
   tau_soln(sv) = tau(tau_soln_idx(sv));
 end
 
+fprintf('Part I a)\n')
+fprintf('Doppler Shift: %f Hz\n',fdopp_soln(4))
+fprintf('Tau (Arrival Time): \n\t%f samples\n\t%f chips\n',tau_soln(4),tau_soln(4)/upsample)
 
 %% Plot SV 4
     
-figure;
-  surf(fdopp,tau,y{sv})
+fh = figure;
+  surf(fdopp,tau,y{4})
   xlabel('Doppler Frequency (Hz)'); ylabel('Sample Shifts'); zlabel('Correlation');
-
+  title('AutoCorrelation of Signal with Replica, PRN #4');
+saveas(fh, 'part1a.fig');
 
 
 %% End matters
