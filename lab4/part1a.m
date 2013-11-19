@@ -4,7 +4,7 @@
 % 
 clear all; close all; clc;
 tic 
-try matlabpool 2; catch e, disp(e); end
+% try matlabpool 3; catch e, disp(e); end
 
 %% constants
 
@@ -19,7 +19,7 @@ integration_period = 1.0e-3; % grab 1ms of data
 Tca = 1.023e-6; % L1 C/A code period
 
 nfdopp = 50; % number of fdopp bins - 1
-fdopp_bound = 5e3; % boundaries on either side of fIF to search for fdopp
+fdopp_bound = 10e3; % boundaries on either side of fIF to search for fdopp
 PC1 = -158.5; % Power of L1 C/A code, dBW
 
 
@@ -47,36 +47,48 @@ prn = genprn(1:32, 1023, [-1 1], upsample);
 % Generate doppler stuff
 dfdopp = 2*fdopp_bound/nfdopp; % delta fdopp, Hz
 fdopp = linspace(-fdopp_bound, fdopp_bound, nfdopp+1); % fdopp in Hz
-feff = fIF - fdopp; % effective frequency, Hz
+feff = fIF + fdopp; % effective frequency, Hz
 
 tau_idx = 0.5*upsample; % how many data indices correspond to tau
-tau = tau_idx:tau_idx:1023*upsample; % vector of tau indices to use
+tau = tau_idx:tau_idx:N; % vector of tau indices to use
 
-y = cell(1,32);
-parfor sv = 1:32 % generate correlation grid for each SV
-  y{sv} = zeros(length(tau),length(fdopp)); % signal replica for correlation
+y = cell(1,32); % each cell index contains an array for each sv
+fdopp_soln = zeros(1,32);
+fdopp_soln_idx = zeros(1,32);
+tau_soln = zeros(1,32);
+tau_soln_idx = zeros(1,32);
+% parfor sv = 1:32 % generate correlation grid for each SV
+for sv = 4;
+  y{1,sv} = zeros(length(tau),length(fdopp)); % signal replica for correlation
   for t_ = 1:length(tau) % loop over time shift values
+    prn_shifted = shift(prn(sv,:),tau(t_));
     for fd_ = 1:length(fdopp); % loop over doppler frequency values
-      tau_ = tau(t_);
-      fdopp_ = fdopp(fd_);
-      f_eff = fIF + fdopp_; % effective frequency
-      for n = 1:length(T); % summation over all time values
-        hf_term = exp(1j*4*pi*f_eff*T(n));
-        prn_shifted = shift(prn(32,:),n-tau_);
-        prn_value = prn_shifted(1);
-        y{sv}(t_,fd_) = y{sv}(t_,fd_) + ... %% !!! FINISH ME
-          sqrt(2*PC1)*prn_value;
-      end
-      y{sv}(t_,fd_) = y{sv}(t_,fd_)/N; % average by dividing by number of epochs
+      sin_ = imag(exp(1j*2*pi*feff(fd_)));
+      cos_ = real(exp(1j*2*pi*feff(fd_)));
+      I = signal1.*prn_shifted.*sin_;
+      Q = signal1.*prn_shifted.*cos_;
+      y{1,sv}(t_,fd_) = sum(I)^2 + sum(Q)^2;
     end
   end
+  % find our answer
+  [max_, fdopp_max_idx] = max(y{1,sv},[],2);
+  [~, tau_max_idx] = max(max_);
+  fdopp_soln_idx(sv) = fdopp_max_idx(tau_max_idx);
+  fdopp_soln(sv) = fdopp(fdopp_soln_idx(sv));
+  tau_soln_idx(sv) = tau_max_idx;
+  tau_soln(sv) = tau(tau_soln_idx(sv));
 end
+
+
+%% Plot SV 4
     
-  
+figure;
+  surf(fdopp,tau,y{4})
+  xlabel('Doppler Frequency (Hz)'); ylabel('Sample Shifts'); zlabel('Correlation');
 
 
 
 %% End matters
-try matlabpool close; catch e, disp(e); end
+% try matlabpool close; catch e, disp(e); end
 toc
 
