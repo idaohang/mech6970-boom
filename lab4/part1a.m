@@ -1,12 +1,15 @@
 %% MECH 6970 Lab4 Part 1, a)
 % Robert Cofield
 % 
+% This assumes you downloaded the data file into ../data/
+% 
 % NOTE !!! :
 % The bit-level operations and array sizing for this 1ms analysis should not be
 % exactly replicated for the 10ms part.
 %   - in particular, the calculation of the upsample rate needs to be redone.
 % 
 clear all; close all; clc;
+fprintf('Part I a)\n')
 tic 
 % try matlabpool 3; catch e, disp(e); end
 
@@ -27,6 +30,11 @@ nfdopp = 25; % number of fdopp bins - 1
 fdopp_bound = 5e3; % boundaries on either side of fIF to search for fdopp
 PC1 = -158.5; % Power of L1 C/A code, dBW
 
+fprintf('Integration Period: %f sec\n',integration_period)
+fprintf('# of Bins in doppler freq search: %i\n',nfdopp+1)
+fprintf('Search space for doppler freq: \n\t%f Hz  ---  %f Hz\n',-fdopp_bound,fdopp_bound)
+fprintf('Tau: %f chips\n',tau_chip_size)
+
 
 %% Read Nordnav Data
 
@@ -39,6 +47,7 @@ fclose(fid); % close file when done
 N = length(signal1);
 T = 0:Ts:Ts*(N-1); % time from start corresponding to each epoch
 upsample = N/1023; 
+fprintf('Upsampling Ratio: %f\n',upsample)
 
 clear filename fid bytes_to_read ans
 
@@ -51,6 +60,7 @@ prn = genprn(1:32, 1023, [-1 1], upsample);
 
 % Generate doppler stuff
 dfdopp = 2*fdopp_bound/nfdopp; % delta fdopp, Hz
+fprintf('Size of Bins in doppler freq search: %f Hz\n',dfdopp)
 fdopp = linspace(-fdopp_bound, fdopp_bound, nfdopp+1); % fdopp in Hz
 feff = fIF + fdopp; % effective frequency, Hz
 
@@ -84,9 +94,8 @@ for sv = 4
   tau_soln(sv) = tau(tau_soln_idx(sv));
 end
 
-fprintf('Part I a)\n')
-fprintf('Doppler Shift: %f Hz\n',fdopp_soln(4))
-fprintf('Tau (Arrival Time): \n\t%f samples\n\t%f chips\n',tau_soln(4),tau_soln(4)/upsample)
+fprintf('\tDoppler Shift: %f Hz\n',fdopp_soln(4))
+fprintf('\tTau (Arrival Time): \n\t\t%f samples\n\t\t%f chips\n',tau_soln(4),tau_soln(4)/upsample)
 
 %% Plot SV 4
     
