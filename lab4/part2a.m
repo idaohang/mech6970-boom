@@ -1,142 +1,66 @@
-%% MECH 6970 Lab4 Part 1, a)
-% Robert Cofield
+%% MECH 6970 Lab4, Part 2, (a) - Primary
 % 
-% This assumes you downloaded the data file into ../data/
+% Loads the results of the acquisition refinement
 % 
-% NOTE !!! :
-% The bit-level operations and array sizing for this 1ms analysis should not be
-% exactly replicated for the 10ms part.
-%   - in particular, the calculation of the upsample rate needs to be redone.
+% @author Robert Cofield
 % 
-% NOTE!!! : 
-% This file extends Part 1a), so any improvements made to Part 1b) need to be
-% implemented here as well
-% 
-tic 
-clear all; close all; clc;
-fprintf('Part II a)\n')
-% try matlabpool 3; catch e, disp(e); end
+tic
+clear all; close all; clc
+acq = load('part2a_narrow_ack.mat');
 
-% Load the Acquisition data for all SV's as it was processed by Part I a)
-load part1a_all_sv
+filename = ['..' filesep 'data' filesep 'GPS_Data_NordNav1e.sim'];
+fileid = fopen(filename);
 
+%% Constants
 
+fL1 = 154*10.23e6; % L1 frequency,  1.5754e+09 Hz
+fs = 16.3676e6; % sampling frequency
+fIF = 4.1304e6; % intermediate frequency
+fD = 50; % Data message chipping frequency, Hz
 
-%% Constants & Settings
+Tca_chip = 1.023e-6; % L1 C/A chip period
+Tca = 1.0e-3; % L1 C/A sequence period
+Td_chip = 1/fD;
+d_frame_size = 1500; % 1500 bits per frame @ data msg chip rate
+d_subframe_size = d_frame_size/5; % bits per subframe @ data msg chip rate
+Td = d_frame_size*Td_chip; % data message frame period (1500 bits per frame), sec
+Ts = 1/fs; % sampling period
 
-corr_thold_sv_present = 17;
-tau_step = 1; % in actual measured samples
-fdopp_step = 25; % Hz
-sv_to_plot = 17; % which of the present sv's to use
+preamble = bin2dec('10001011');  
 
-%% Find SV's which are present
-% Should be 1,2,4,8,9,10,12,17,20,24,28,32 ?
-% By looking at crosscorrelation plots manually:
-%   4,17,28,2,20
-
-fh = figure;
-  plot(y_ratio)
-  grid on
-  title('Ratio of max correlation value to mean correlation value for each SV')
-  xlabel('SV #')
-  
-% % Use this to examine crosscorrelations
-% fh = figure;
-%   surf(fdopp,tau,y{20})
-%   xlabel('Doppler Frequency (Hz)'); ylabel('Sample Shifts'); zlabel('Correlation');
-%   title('CrossCorrelation of Signal with Replica');
-
-% reorder with strongest correlation first
-[y_ratio_, present_svs] = sort(y_ratio,'descend');
-present_svs = present_svs(find(y_ratio_>corr_thold_sv_present));
-nsv = length(present_svs);
-clear y_ratio_
+% integration_period = Td/5; % seconds of data to read in - 1 subframe
+% total_data_bytes = integration_period/Td_chip
 
 
-%% Hone in on Doppler Frequency and Arrival Time
+%% Generate PRNs with shift found in Acquisition
 
-yp = cell(1,nsv); % y for present sv
-tau_p = cell(1,nsv); % narrowed range of taus used for each present sv
-fdopp_p = cell(1,nsv); % narrowed range of fdopps used for each present sv
-tau_p_soln = zeros(1,nsv);
-tau_p_soln_idx = zeros(1,nsv);
-fdopp_p_soln = zeros(1,nsv);
-fdopp_p_soln_idx = zeros(1,nsv);
-for svpi = 1:length(present_svs)
-  sv = present_svs(svpi);
-  
-  % get a narrower range of tau values - between
-  tau_lo = tau(tau_soln_idx(sv)-2);
-  tau_hi = tau(tau_soln_idx(sv)+2);
-  tau_ = tau_lo:tau_step:tau_hi;
-  
-  % get a narrower range of fdopps  
-  feff_lo = feff(fdopp_soln_idx(sv)-2);
-  feff_hi = feff(fdopp_soln_idx(sv)+2);
-  feff_ = feff_lo:fdopp_step:feff_hi;
-  
-  % new landscape to calculate
-  yp_ = zeros(length(tau_),length(feff_));
-  
-  % search over new tau range
-  for t_ = 1:length(tau_)
-    prn_shifted = shift(prn(sv,:),tau_(t_));
-    % search over new fdopp (feff) range
-    for f_ = 1:length(feff_); 
-      sin_ = imag(exp(1j*2*pi*feff_(f_)*T));
-      cos_ = real(exp(1j*2*pi*feff_(f_)*T));
-      I = signal1.*prn_shifted.*sin_;
-      Q = signal1.*prn_shifted.*cos_;
-      yp_(t_,f_) = sum(I)^2 + sum(Q)^2;
-    end    
-  end
-  
-  % save data for this SV
-  yp{1,svpi} = yp_;
-  tau_p{1,svpi} = tau_;
-  fdopp_p{1,svpi} = feff_ -fIF;
-  
-  % find the answer
-%   [max_, fdopp_max_idx] = max(y{1,sv},[],2);
-%   [~, tau_max_idx] = max(max_);
-%   fdopp_soln_idx(sv) = fdopp_max_idx(tau_max_idx);
-%   fdopp_soln(sv) = fdopp(fdopp_soln_idx(sv));
-%   tau_soln_idx(sv) = tau_max_idx;
-%   tau_soln(sv) = tau(tau_soln_idx(sv));
-  [max_, fdopp_max_idx] = max(yp_,[],2);
-  [~,tau_max_idx] = max(max_);
-  fdopp_p_soln_idx(svpi) = fdopp_max_idx(tau_max_idx);
-  fdopp_p_soln(svpi) = fdopp_p{1,svpi}(fdopp_p_soln_idx(svpi));
-  tau_p_soln_idx(svpi) = tau_max_idx;
-  tau_p_soln(svpi) = tau_(tau_max_idx);
-
+% prns = genprn(acq.svs, 1023, [-1 1],
+prns_aligned0 = zeros(nsv,N);
+for sv = 1:acq.nsv
+%   prns_aligned0(sv,:) = shift(prn
 end
 
-clear feff_ tau_ yp_ tau_lo tau_hi feff_lo feff_hi I Q sin_ cos_ t_ f_
-clear fdopp fdopp_bound fdopp_max_idx fdopp_soln fdopp_soln_idx fdopp_step
-clear max_ feff tau_soln tau_soln_idx tau_step svpi y tau tau_chip_size tau_idx
-clear tau_max_idx y_ratio y_max y_mean sv e nfdopp
-
-%% Examine Isolated Doppler Frequency & Arrival Time
-
-sv_to_plot_idx = find(present_svs==sv_to_plot);
-fh = figure;
-  surf(fdopp_p{sv_to_plot_idx},tau_p{sv_to_plot_idx},yp{sv_to_plot_idx})
-  xlabel('Doppler Frequency (Hz)'); ylabel('Sample Shifts'); zlabel('Correlation');
-  title(['Narrowed Search, SV #' num2str(sv_to_plot) ' - CrossCorrelation of Signal with Replica']);
-  hold on
-  plot3(fdopp_p_soln(sv_to_plot_idx), ...
-        tau_p_soln(sv_to_plot_idx), ...
-        yp{sv_to_plot_idx}(tau_p_soln_idx(sv_to_plot_idx),fdopp_p_soln_idx(sv_to_plot_idx)), ...
-        'm.','MarkerSize',20 ...
-      );
-saveas(fh,'part2a_xcorr_closeup.png');
-
-clear sv_to_plot_idx fh
+%% Decode Data Bits
 
 
-%% End matters
-% try matlabpool close; catch e, disp(e); end
-save part2c
+preamble_found = false;
+while ~preamble_found
+
+  for svpi = 1:acq.nsv
+    sv = present_svs(svpi);
+    % get local variables for the present sv
+    tau_ = acq.tau_samples(svpi);
+    fdopp_ = acq.fdopp(svpi);
+    feff_ = fdopp_ + fIF;
+
+  end
+end
+
+
+
+
+%% End Matters
+fclose(fileid);
+clear fileid
+save part2a
 toc
-
