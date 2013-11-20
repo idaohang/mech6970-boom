@@ -8,122 +8,135 @@
 % exactly replicated for the 10ms part.
 %   - in particular, the calculation of the upsample rate needs to be redone.
 % 
-% 
+% NOTE!!! : 
 % This file extends Part 1a), so any improvements made to Part 1b) need to be
 % implemented here as well
 % 
-clear all; close all; clc;
-fprintf('Part I a)\n')
 tic 
-try matlabpool 3; catch e, disp(e); end
+clear all; close all; clc;
+fprintf('Part II a)\n')
+% try matlabpool 3; catch e, disp(e); end
 
-%% constants
-
-filename = ['..' filesep 'data' filesep 'GPS_Data_NordNav1e.sim'];
-
-fL1 = 154*10.23e6; % L1 frequency,  1.5754e+09 Hz
-fs = 16.3676e6; % sampling frequency
-fIF = 4.1304e6; % intermediate frequency
-
-Ts = 1/fs; % sampling period
-integration_period = 1.0e-3; % grab 1ms of data
-Tca = 1.023e-6; % L1 C/A code period
-tau_chip_size = 0.5; % how many chips to use for tau
-
-nfdopp = 25; % number of fdopp bins - 1
-fdopp_bound = 5e3; % boundaries on either side of fIF to search for fdopp
-PC1 = -158.5; % Power of L1 C/A code, dBW
-
-corr_thold = 10;
-
-fprintf('Integration Period: %f sec\n',integration_period)
-fprintf('# of Bins in doppler freq search: %i\n',nfdopp+1)
-fprintf('Search space for doppler freq: \n\t%f Hz  ---  %f Hz\n',-fdopp_bound,fdopp_bound)
-fprintf('Tau: %f chips\n',tau_chip_size)
+% Load the Acquisition data for all SV's as it was processed by Part I a)
+load part1a_all_sv
 
 
-%% Read Nordnav Data
 
-fid = fopen(filename);
-bytes_to_read = round(fs*integration_period); % number of bytes
-signal1 = fread(fid,bytes_to_read,'int8')'; % read  1 millisecond chunk of data
-signal2 = fread(fid,bytes_to_read,'int8')'; % read another 1 millisecond chunk of data
-fclose(fid); % close file when done
+%% Constants & Settings
 
-N = length(signal1);
-T = 0:Ts:Ts*(N-1); % time from start corresponding to each epoch
-upsample = N/1023; 
-fprintf('Upsampling Ratio: %f\n',upsample)
+corr_thold_sv_present = 17;
+tau_step = 1; % in actual measured samples
+fdopp_step = 25; % Hz
+sv_to_plot = 17; % which of the present sv's to use
 
-clear filename fid bytes_to_read ans
+%% Find SV's which are present
+% Should be 1,2,4,8,9,10,12,17,20,24,28,32 ?
+% By looking at crosscorrelation plots manually:
+%   4,17,28,2,20
+
+fh = figure;
+  plot(y_ratio)
+  grid on
+  title('Ratio of max correlation value to mean correlation value for each SV')
+  xlabel('SV #')
+  
+% % Use this to examine crosscorrelations
+% fh = figure;
+%   surf(fdopp,tau,y{20})
+%   xlabel('Doppler Frequency (Hz)'); ylabel('Sample Shifts'); zlabel('Correlation');
+%   title('CrossCorrelation of Signal with Replica');
+
+% reorder with strongest correlation first
+[y_ratio_, present_svs] = sort(y_ratio,'descend');
+present_svs = present_svs(find(y_ratio_>corr_thold_sv_present));
+nsv = length(present_svs);
+clear y_ratio_
 
 
-%% Acquisition
+%% Hone in on Doppler Frequency and Arrival Time
 
-% PRN replica
-% generate PRNS for each satellite at the appropriate frequency
-prn = genprn(1:32, 1023, [-1 1], upsample);
-
-% Generate doppler stuff
-dfdopp = 2*fdopp_bound/nfdopp; % delta fdopp, Hz
-fprintf('Size of Bins in doppler freq search: %f Hz\n',dfdopp)
-fdopp = linspace(-fdopp_bound, fdopp_bound, nfdopp+1); % fdopp in Hz
-feff = fIF + fdopp; % effective frequency, Hz
-
-tau_idx = tau_chip_size*upsample; % how many data indices correspond to tau
-tau = tau_idx:tau_idx:N; % vector of tau indices to use
-
-y = cell(1,32); % each cell index contains an array for each sv
-y_mean = zeros(1,32);
-y_max = zeros(1,32);
-fdopp_soln = zeros(1,32);
-fdopp_soln_idx = zeros(1,32);
-tau_soln = zeros(1,32);
-tau_soln_idx = zeros(1,32);
-parfor sv = 1:32 % generate correlation grid for each SV
-% for sv = 4
-  y{1,sv} = zeros(length(tau),length(fdopp)); % signal replica for correlation
-  for t_ = 1:length(tau) % loop over time shift values
-    prn_shifted = shift(prn(sv,:),tau(t_));
-    for fd_ = 1:length(fdopp); % loop over doppler frequency values
-      sin_ = imag(exp(1j*2*pi*feff(1,fd_)*T));
-      cos_ = real(exp(1j*2*pi*feff(1,fd_)*T));
+yp = cell(1,nsv); % y for present sv
+tau_p = cell(1,nsv); % narrowed range of taus used for each present sv
+fdopp_p = cell(1,nsv); % narrowed range of fdopps used for each present sv
+tau_p_soln = zeros(1,nsv);
+tau_p_soln_idx = zeros(1,nsv);
+fdopp_p_soln = zeros(1,nsv);
+fdopp_p_soln_idx = zeros(1,nsv);
+for svpi = 1:length(present_svs)
+  sv = present_svs(svpi);
+  
+  % get a narrower range of tau values - between
+  tau_lo = tau(tau_soln_idx(sv)-2);
+  tau_hi = tau(tau_soln_idx(sv)+2);
+  tau_ = tau_lo:tau_step:tau_hi;
+  
+  % get a narrower range of fdopps  
+  feff_lo = feff(fdopp_soln_idx(sv)-2);
+  feff_hi = feff(fdopp_soln_idx(sv)+2);
+  feff_ = feff_lo:fdopp_step:feff_hi;
+  
+  % new landscape to calculate
+  yp_ = zeros(length(tau_),length(feff_));
+  
+  % search over new tau range
+  for t_ = 1:length(tau_)
+    prn_shifted = shift(prn(sv,:),tau_(t_));
+    % search over new fdopp (feff) range
+    for f_ = 1:length(feff_); 
+      sin_ = imag(exp(1j*2*pi*feff_(f_)*T));
+      cos_ = real(exp(1j*2*pi*feff_(f_)*T));
       I = signal1.*prn_shifted.*sin_;
       Q = signal1.*prn_shifted.*cos_;
-      y{1,sv}(t_,fd_) = sum(I)^2 + sum(Q)^2;
-    end
+      yp_(t_,f_) = sum(I)^2 + sum(Q)^2;
+    end    
   end
-  % find the highest correlation
-  [max_, fdopp_max_idx] = max(y{1,sv},[],2);
-  [y_max(sv), tau_max_idx] = max(max_);
-  fdopp_soln_idx(sv) = fdopp_max_idx(tau_max_idx);
-  fdopp_soln(sv) = fdopp(fdopp_soln_idx(sv));
-  tau_soln_idx(sv) = tau_max_idx;
-  tau_soln(sv) = tau(tau_soln_idx(sv));
-  % determine if this correlation stands out enough;
-  y_mean(sv) = mean(mean(y{1,sv}));
-  disp(sv);
+  
+  % save data for this SV
+  yp{1,svpi} = yp_;
+  tau_p{1,svpi} = tau_;
+  fdopp_p{1,svpi} = feff_ -fIF;
+  
+  % find the answer
+%   [max_, fdopp_max_idx] = max(y{1,sv},[],2);
+%   [~, tau_max_idx] = max(max_);
+%   fdopp_soln_idx(sv) = fdopp_max_idx(tau_max_idx);
+%   fdopp_soln(sv) = fdopp(fdopp_soln_idx(sv));
+%   tau_soln_idx(sv) = tau_max_idx;
+%   tau_soln(sv) = tau(tau_soln_idx(sv));
+  [max_, fdopp_max_idx] = max(yp_,[],2);
+  [~,tau_max_idx] = max(max_);
+  fdopp_p_soln_idx(svpi) = fdopp_max_idx(tau_max_idx);
+  fdopp_p_soln(svpi) = fdopp_p{1,svpi}(fdopp_p_soln_idx(svpi));
+  tau_p_soln_idx(svpi) = tau_max_idx;
+  tau_p_soln(svpi) = tau_(tau_max_idx);
+
 end
-y_ratio = y_max./y_mean;
-sv_present = find(y_ratio>corr_thold);
 
+clear feff_ tau_ yp_ tau_lo tau_hi feff_lo feff_hi I Q sin_ cos_ t_ f_
+clear fdopp fdopp_bound fdopp_max_idx fdopp_soln fdopp_soln_idx fdopp_step
+clear max_ feff tau_soln tau_soln_idx tau_step svpi y tau tau_chip_size tau_idx
+clear tau_max_idx y_ratio y_max y_mean sv e nfdopp
 
+%% Examine Isolated Doppler Frequency & Arrival Time
 
-% fprintf('\nSOLUTION:\n')
-% fprintf('\tDoppler Shift: %f Hz\n',fdopp_soln(4))
-% fprintf('\tTau (Arrival Time): \n\t\t%f samples\n\t\t%f chips\n',tau_soln(4),tau_soln(4)/upsample)
-
-%% Plot SV 4
-    
+sv_to_plot_idx = find(present_svs==sv_to_plot);
 fh = figure;
-  surf(fdopp,tau,y{4})
+  surf(fdopp_p{sv_to_plot_idx},tau_p{sv_to_plot_idx},yp{sv_to_plot_idx})
   xlabel('Doppler Frequency (Hz)'); ylabel('Sample Shifts'); zlabel('Correlation');
-  title('AutoCorrelation of Signal with Replica, PRN #4');
-saveas(fh, 'part1a.fig');
+  title(['Narrowed Search, SV #' num2str(sv_to_plot) ' - CrossCorrelation of Signal with Replica']);
+  hold on
+  plot3(fdopp_p_soln(sv_to_plot_idx), ...
+        tau_p_soln(sv_to_plot_idx), ...
+        yp{sv_to_plot_idx}(tau_p_soln_idx(sv_to_plot_idx),fdopp_p_soln_idx(sv_to_plot_idx)), ...
+        'm.','MarkerSize',20 ...
+      );
+saveas(fh,'part2a_xcorr_closeup.png');
+
+clear sv_to_plot_idx fh
 
 
 %% End matters
-try matlabpool close; catch e, disp(e); end
+% try matlabpool close; catch e, disp(e); end
 save part2c
 toc
 

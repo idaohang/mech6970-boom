@@ -103,7 +103,7 @@ fprintf('\tTau (Arrival Time): \n\t\t%f samples\n\t\t%f chips\n',tau_soln(4),tau
 fh = figure;
   surf(fdopp,tau,y{4})
   xlabel('Doppler Frequency (Hz)'); ylabel('Sample Shifts'); zlabel('Correlation');
-  title('AutoCorrelation of Signal with Replica, PRN #4');
+  title('CrossCorrelation of Signal with Replica, PRN #4');
 saveas(fh, 'part1a.fig');
 
 
