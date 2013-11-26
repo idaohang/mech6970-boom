@@ -137,6 +137,7 @@ fh = figure;
         'm.','MarkerSize',20 ...
       );
 saveas(fh,'part2a_xcorr_closeup.png');
+saveas(fh,'part2a_xcorr_closeup.fig');
 
 clear sv_to_plot_idx fh sv_to_plot
 
