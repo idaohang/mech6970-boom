@@ -34,17 +34,18 @@ stop_time = 1; % how long to go in sec
 
 preamble = bin2dec('10001011');  
 
-% DLL filter 2nd order
-K_dll = 0.01;
-a_dll = -0.75;
+% % DLL filter 2nd order
+% K_dll = 0.01;
+% a_dll = -0.75;
 
 % PLL filter 2nd Order
-K_pll = 0.5;
-a_pll = -0.75;
+pll = struct(...
+  'z',0.9,...
+  'f',5);
 
 % % Look at PLL filter
-% num = K_pll*[1 a_pll]
-% den = [1 -1]
+% num = [4*pi*pll.z*pll.f , (2*pi*pll.f)^2];
+% den = [1 , 4*pi*pll.z*pll.f ,  (2*pi*pll.f)^2];
 % rlocus(tf(num,den,Tid))
 % pause
 
@@ -79,7 +80,8 @@ tau_chips(:,1) = acq.tau_samples; % code phase
 car_freq = zeros(acq.nsv,len);
 car_freq(:,1) = acq.fdopp + fIF;
 prn_phase_err = zeros(acq.nsv,len);
-car_phase_err = zeros(acq.nsv,len);
+car_phase_err_raw = zeros(acq.nsv,len);
+car_phase_err_est = zeros(acq.nsv,len);
 
 for k = 1:len
   
@@ -119,23 +121,28 @@ for k = 1:len
     prn_phase_err_ = (early-late)/(early+late);
     
     % calculate the phase error
-    car_phase_err_ = atan(I.P(s,k)/Q.P(s,k)); % rad
+    car_phase_err_raw(s,k) = atan(I.P(s,k)/Q.P(s,k)); % rad
     
     % Do discrete filtering if enough data already present
-    if k > 1
+    if k > 2
+      
       % filter carrier phase error
-      car_phase_err(s,k) = (K_pll*a_pll+1)/(1-K_pll)*car_phase_err(s,k-1) * car_phase_err_; % rad
-      % filter code phase errors
-      prn_phase_err(s,k) = (K_dll*a_dll+1)/(1-K_dll)*prn_phase_err(s,k-1) * prn_phase_err_; % chips ???
-    else
-      car_phase_err(s,k) = car_phase_err_; % rad
-      prn_phase_err(s,k) = prn_phase_err_/Ts; % transfer code phase to chips from sec
+      e_1 = car_phase_err_raw(s,k-1);
+      e_2 = car_phase_err_raw(s,k-2);
+      eh1 = car_phase_err_est(s,k-1);
+      eh2 = car_phase_err_est(s,k-2);
+      car_phase_err_est(s,k) = ( 4*pi*pll.z*pll.f*e_1 + (2*pi*pll.f)^2*e_2 ) ...
+                             - ( 4*pi*pll.z*pll.f*eh1 + (2*pi*pll.f)^2*eh2 ); % rad
+    
+    else % can't do filtering yet 
+      car_phase_err_est(s,k) = car_phase_err_raw(s,k); % rad
+      prn_phase_err(s,k) = prn_phase_err_/Tid; % ?????
     end    
     
     % save new values for code phase & carrier frequency
     %     tau_chips(s,k) = prn_phase_err(s,k);
     prns_(s,:) = shift(prns_(s,:),round(prn_phase_err(s,k)));
-    car_freq(s,k) = car_freq(s,k) + car_phase_err(s,k)/(2*pi); % convert car err (rad) to car freq err
+    car_freq(s,k) = car_freq(s,k) + car_phase_err_est(s,k)/(2*pi); % convert car err (rad) to car freq err
     
     % propagate carrier frequency to next time step
     if k~=len, car_freq(s,k+1) = car_freq(s,k); end
@@ -174,7 +181,7 @@ clear L Y f NFFT
 % Plot Carrier Phase Error and Frequency
 figh = figure;
   subplot(3,1,1)
-    plot(signal_time, car_phase_err(svidx_,1:len)); grid on
+    plot(signal_time, car_phase_err_est(svidx_,1:len)); grid on
     axh1 = gca;
     title(['Carrier Phase Error - SV#' num2str(acq.svs(svidx_))])
     xlabel('Signal Time (s)'); ylabel('Carrier Phase Error (rad)');
