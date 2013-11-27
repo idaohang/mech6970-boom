@@ -24,27 +24,34 @@ fprintf('Part II a) - Narrowing Acquisition Results\n')
 % try matlabpool 3; catch e, disp(e); end
 
 % Load the Acquisition data for all SV's as it was processed by Part I a)
-load part1a_all_sv
+% load part1a_all_sv
+load part1a_dual_y
 
 
 %% Constants & Settingsfilename = ['..' filesep 'data' filesep 'GPS_Data_NordNav1e.sim'];
 
-corr_thold_sv_present = 17;
+corr_thold_sv_present = 11;
 tau_step = 1; % in actual measured samples
 fdopp_step = 25; % Hz
-sv_to_plot = 17; % which of the present sv's to use
+sv_to_plot = 4; % which of the present sv's to use
 
 %% Find SV's which are present
 % Should be 1,2,4,8,9,10,12,17,20,24,28,32 ?
 % By looking at crosscorrelation plots manually:
 %   4,17,28,2,20
 
-% % Use this to see which SV's should be present, choose threshold
-% fh = figure;
-%   plot(y_ratio)
-%   grid on
-%   title('Ratio of max correlation value to mean correlation value for each SV')
-%   xlabel('SV #')
+y_ratio = zeros(1,32);
+
+for s = 1:32
+  y_ratio(s) = y_peak(s)/mean(mean(y{s}));
+end
+
+% Use this to see which SV's should be present, choose threshold
+fh = figure;
+  plot(y_ratio)
+  grid on
+  title('Ratio of max correlation value to mean correlation value for each SV')
+  xlabel('SV #')
   
 % % Use this to examine crosscorrelations
 % fh = figure;
@@ -152,7 +159,7 @@ svs = present_svs;
 
 clear yp signal1 signal2 tau_p fdopp_p tau_p_soln_idx fdopp_p_soln_idx dfdopp
 clear corr_thold_sv_present upsample integration_period fs prn N PC1 T Tca Ts
-clear fIF fL1 tau_p_soln fdopp_p_soln present_svs
+clear fIF fL1 tau_p_soln fdopp_p_soln present_svs s y_peak
 
 save part2a_narrow_ack
 toc

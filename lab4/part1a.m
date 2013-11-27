@@ -11,7 +11,7 @@
 clear all; close all; clc;
 fprintf('Part I a)\n')
 tic 
-% try matlabpool 3; catch e, disp(e); end
+try matlabpool 3; catch e, disp(e); end
 
 %% constants
 
@@ -72,26 +72,44 @@ fdopp_soln = zeros(1,32);
 fdopp_soln_idx = zeros(1,32);
 tau_soln = zeros(1,32);
 tau_soln_idx = zeros(1,32);
-% parfor sv = 1:32 % generate correlation grid for each SV
-for sv = 4
+
+y_peak = zeros(1,32);
+
+parfor sv = 1:32 % generate correlation grid for each SV
+% for sv = 4
   y{1,sv} = zeros(length(tau),length(fdopp)); % signal replica for correlation
   for t_ = 1:length(tau) % loop over time shift values
     prn_shifted = shift(prn(sv,:),tau(t_));
     for fd_ = 1:length(fdopp); % loop over doppler frequency values
+      
       sin_ = imag(exp(1j*2*pi*feff(fd_)*T));
       cos_ = real(exp(1j*2*pi*feff(fd_)*T));
+      
+      % first 1.0 ms
       I = signal1.*prn_shifted.*sin_;
       Q = signal1.*prn_shifted.*cos_;
-      y{1,sv}(t_,fd_) = sum(I)^2 + sum(Q)^2;
+      y1 = sum(I)^2 + sum(Q)^2;
+      
+      % second 1.0 ms
+      I = signal2.*prn_shifted.*sin_;
+      Q = signal2.*prn_shifted.*cos_;
+      y2 = sum(I)^2 + sum(Q)^2;
+      
+      % the 1.0 ms chunk that doesn't have a nav msg bit transition in it will
+      % have the highest correlation value.
+      y{1,sv}(t_,fd_) = max(y1,y2);
+      
     end
   end
+  
   % find our answer
   [max_, fdopp_max_idx] = max(y{1,sv},[],2);
-  [~, tau_max_idx] = max(max_);
+  [y_peak(sv), tau_max_idx] = max(max_);
   fdopp_soln_idx(sv) = fdopp_max_idx(tau_max_idx);
   fdopp_soln(sv) = fdopp(fdopp_soln_idx(sv));
   tau_soln_idx(sv) = tau_max_idx;
   tau_soln(sv) = tau(tau_soln_idx(sv));
+  
 end
 
 fprintf('\nSOLUTION:\n')
@@ -108,6 +126,6 @@ saveas(fh, 'part1a.fig');
 
 
 %% End matters
-% try matlabpool close; catch e, disp(e); end
+try matlabpool close; catch e, disp(e); end
 toc
 

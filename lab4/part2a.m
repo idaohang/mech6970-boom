@@ -5,7 +5,7 @@
 % @author Robert Cofield
 % 
 tic
-clear all; close all; clc
+clear all; clc
 acq = load('part2a_narrow_ack.mat');
 
 filename = ['..' filesep 'data' filesep 'GPS_Data_NordNav1e.sim'];
@@ -13,11 +13,14 @@ fileid = fopen(filename);
 
 %% Constants
 
+svidx_ = 1;
+
 fL1 = 154*10.23e6; % L1 frequency,  1.5754e+09 Hz
 fs = 16.3676e6; % sampling frequency
 fIF = 4.1304e6; % intermediate frequency
 fD = 50; % Data message chipping frequency, Hz
 
+TL1 = 1/fL1; % L1 carrier period
 Tca_chip = 1.023e-6; % L1 C/A chip period
 Tca = 1.0e-3; % L1 C/A sequence period
 Td_chip = 1/fD;
@@ -27,17 +30,17 @@ Tnav_chip = 20e-3; % period of a single nav msg chip
 Tnav_frame = Tnav_chip*1500; % period of the entire nav msg frame
 Tnav_subframe = Tnav_frame/5; % period of a nav msg subframe
 
-stop_time = Tnav_subframe;
+stop_time = 1; % how long to go in sec
 
 preamble = bin2dec('10001011');  
 
 % DLL filter 2nd order
-K_dll = 0.5;
-a_dll = -0.5;
+K_dll = 0.01;
+a_dll = -0.75;
 
 % PLL filter 2nd Order
 K_pll = 0.5;
-a_pll = -0.5;
+a_pll = -0.75;
 
 % % Look at PLL filter
 % num = K_pll*[1 a_pll]
@@ -89,11 +92,9 @@ for k = 1:len
   % find the time (sec) corresponding to the current signal chunk
   signal_time_ = signal_time_(end)+Ts:Ts:signal_time_(end)+Ts*nbyte_id;
   
-%   for svi = 1:acq.nsv % iterate over present SVs
-  for s = 1 % just over SV 4
-
-    % % Delay Lock Loop
-    
+  for s = 1:acq.nsv % iterate over present SVs
+%   for s = svidx_ % just over a single SV
+       
     % shift the original PRN sequence by the current code phase
     prnP = prns_(s,:); % prompt code
     % get early and late PRNs
@@ -121,7 +122,7 @@ for k = 1:len
     car_phase_err_ = atan(I.P(s,k)/Q.P(s,k)); % rad
     
     % Do discrete filtering if enough data already present
-    if k>1
+    if k > 1
       % filter carrier phase error
       car_phase_err(s,k) = (K_pll*a_pll+1)/(1-K_pll)*car_phase_err(s,k-1) * car_phase_err_; % rad
       % filter code phase errors
@@ -132,9 +133,9 @@ for k = 1:len
     end    
     
     % save new values for code phase & carrier frequency
-%     tau_chips(s,k) = prn_phase_err(s,k);
+    %     tau_chips(s,k) = prn_phase_err(s,k);
     prns_(s,:) = shift(prns_(s,:),round(prn_phase_err(s,k)));
-    car_freq(s,k) = car_freq(s,k) + car_phase_err(s,k)/(2*pi); % convert car freq to Hz
+    car_freq(s,k) = car_freq(s,k) + car_phase_err(s,k)/(2*pi); % convert car err (rad) to car freq err
     
     % propagate carrier frequency to next time step
     if k~=len, car_freq(s,k+1) = car_freq(s,k); end
@@ -142,47 +143,52 @@ for k = 1:len
   end
   
   % save time of this cumulative step as the time at the end of this
+  % integration period
   signal_time(k) = signal_time_(end);
   
 end
 
 
 %% Plotting
+close all;
 
 % Plot the actual IP
 figh = figure;
-  plot(signal_time,I.P(1,1:len)); grid on
+  plot(signal_time,I.P(svidx_,1:len)); grid on
   title(['Inphase Prompt - SV#' num2str(acq.svs(1))])
   xlabel('Signal Time (s)'); ylabel('IP');
   
 % % Take the FFT of IP
-L = length(I.P(1,:));
+L = length(I.P(svidx_,:));
 NFFT = 2^nextpow2(L);
-Y = fft(I.P(1,:),NFFT)/L;
+Y = fft(I.P(svidx_,:),NFFT)/L;
 f = fs/2*linspace(0,1,NFFT/2+1);
 figh = figure;
   plot(f,2*abs(Y(1:NFFT/2+1))); grid on
   title('Single Sided Amplitude Spectrum of IP')
   xlabel('Frequency (Hz)'); ylabel('| Y(F) |')
-
+clear L Y f NFFT
+  
 % % Plot the Code Phase error
-figh = figure;
-  plot(signal_time, prn_phase_err(1,1:len)); grid on
-  title(['Filtered Code Phase Error - SV#' num2str(acq.svs(1))]);
-  xlabel('Signal Time (s)'); ylabel('e');
 
 % Plot Carrier Phase Error and Frequency
 figh = figure;
-  subplot(2,1,1)
-    plot(signal_time, car_phase_err(1,1:len)); grid on
+  subplot(3,1,1)
+    plot(signal_time, car_phase_err(svidx_,1:len)); grid on
     axh1 = gca;
-    title(['Carrier Phase Error - SV#' num2str(acq.svs(1))])
-    xlabel('Signal Time (s)'); ylabel('f');
-  subplot(2,1,2)
-    plot(signal_time, car_freq(1,1:len)); grid on
+    title(['Carrier Phase Error - SV#' num2str(acq.svs(svidx_))])
+    xlabel('Signal Time (s)'); ylabel('Carrier Phase Error (rad)');
+  subplot(3,1,2)
+    plot(signal_time, car_freq(svidx_,1:len)); grid on
     axh2 = gca;
     title('Carrier Frequency'); ylabel('f_{car} (Hz)'); xlabel('Signal Time (s)');
-  linkprop([axh1 axh2], {'XLim'});
+  subplot(3,1,3)
+    plot(signal_time, prn_phase_err(svidx_,1:len)); grid on
+    axh3 = gca;
+    title(['Filtered Code Phase Error - SV#' num2str(acq.svs(svidx_))]);
+    xlabel('Signal Time (s)'); ylabel('e');
+
+linkprop([axh3 axh1 axh2], {'XLim'});
     
 %% End Matters
 

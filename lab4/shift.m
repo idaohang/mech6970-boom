@@ -9,7 +9,11 @@ function y = shift(x,n)
 % @author Robert Cofield
 % 
 
-if round(n) ~= n
+if isnan(n)
+  warning('Received NaN shift value. Returning input as output.');
+  y = x;
+  return
+elseif round(n) ~= n
   error('Non-integer shift value received');
 end
 
@@ -17,8 +21,10 @@ if abs(n) > length(x)
   n = sign(n)*mod(abs(n),length(x));
 end
 
-if n == 0 
+if n == 0
+%   warning('Received `n` value of 0. Returning input vector as output');
   y = x;
+  return
 elseif n > 0
   y = [x(1+n:end) x(1:n)];
 elseif n < 0
