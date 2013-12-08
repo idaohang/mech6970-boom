@@ -40,7 +40,7 @@ function settings = initSettings()
 %% Processing settings ==================================================== 
 % Number of milliseconds to be processed used 36000 + any transients (see 
 % below - in Nav parameters) to ensure nav subframes are provided 
-settings.msToProcess        = 5000;        %[ms] 
+settings.msToProcess        = 20000;        %[ms] 
  
 % Number of channels to be used for signal processing 
 settings.numberOfChannels   = 4; 
