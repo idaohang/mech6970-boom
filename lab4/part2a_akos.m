@@ -55,7 +55,7 @@ pll = struct(...
 % pause
 
 
-%% Decode Data Bits
+%% Tracking
 
 n_code_per = stop_time/Tid; % how many data points we'll have in the end
 
@@ -72,19 +72,75 @@ settings.numberOfChannels = acq.nsv;
 
 [trackingResults,trackingChannel] = tracking(fileid, channel, settings);
 
+%% Decode Data Bits
+
+data = zeros(acq.nsv,n_code_per);
+data_IP_thold = 1000;
+data_trans_idx = cell(acq.nsv,1);
+nav_msg = cell(acq.nsv,1);
+
+for ch = 1:acq.nsv
+  % thresholding
+  data(ch,:) = trackingResults(ch).I_P > data_IP_thold;  
+  % start tracking bits after the second uptick
+  uptick_idx = find(diff(data(ch,:))==1);
+  downtick_idx = find(diff(data(ch,:))==-1);
+  % make sure that each uptick is spaced a multiple of 20 ms apart
+  if ( ~all(rem(diff(uptick_idx),20)==0) ) || ( ~all(rem(diff(downtick_idx),20)==0) )
+    fprintf(['problem on SV ' num2str(acq.svs(ch)) '. Skipping. \n'])
+    continue;
+  end
+  begin_up = uptick_idx(2)+1;
+  begin_down = downtick_idx(2)+1;
+  begin = min(begin_up,begin_down);
+  data_trans_idx{ch,1}(1) = begin;
+  cnt = 1; % how many data bits we have;
+  while true
+    idx = data_trans_idx{ch,1}(end);
+    % save the value of the current bit
+    nav_msg{ch,1}(end+1) = data(ch,idx);
+    
+    if data_trans_idx{ch,1}(end) + 20 > n_code_per % reached the end of the data stream
+      break;
+    end
+    % save the index of the next data bit within the signal stream
+    data_trans_idx{ch,1}(end+1) = idx+20; % save the next index
+  end
+  
+end
+
+
 
 %% Plot IP
 
 close all
 
-for k = 1:acq.nsv
+for k = 1:2
+  
 figure;
-  plot(trackingResults(k).I_P)
-  grid on
-  xlabel('Time (ms)');
-  ylabel('IP');
-  title(['In-phase Prompt for PRN' num2str(acq.svs(k))])
+  subplot(3,1,1)
+    plot(trackingResults(k).I_P)
+    grid on
+    xlabel('Time (ms)');
+    ylabel('IP');
+    title(['In-phase Prompt for PRN' num2str(acq.svs(k))])
+  subplot(3,1,2)
+    plot(data(k,:),'LineWidth',4)
+    grid on; hold on
+    for kk = 1:length(data_trans_idx{k,1})
+      idx = data_trans_idx{k,1}(kk);
+      plot([idx idx],[-.5 1.5],'r')
+    end
+    title('Thresholded Data Bits')
+    xlabel('Time (ms)')
+    ylim([-1 2])
+  subplot(3,1,3)
+    stairs(nav_msg{k,1})
+    ylim([-1 2])
+    xlabel('Data Chip #')
 end
+
+
 
 
 %% End Matters

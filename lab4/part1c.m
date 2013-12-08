@@ -15,7 +15,7 @@ tic
 
 %% constants
 
-filename = ['..' filesep 'data' filesep 'GPS_Data_NordNav1e (1).sim'];
+filename = ['..' filesep 'data' filesep 'GPS_Data_NordNav1e.sim'];
 
 fL1 = 154*10.23e6; % L1 frequency,  1.5754e+09 Hz
 fs = 16.3676e6; % sampling frequency
@@ -38,7 +38,7 @@ fprintf('Tau: %f chips\n',tau_chip_size)
 
 %% Read Nordnav Data
 
-fid = fopen('GPS_Data_Nordnav1e (1).sim');
+fid = fopen(filename);
 bytes_to_read = round(fs*integration_period); % number of bytes
 signal1 = fread(fid,bytes_to_read,'int8')'; % read  1 millisecond chunk of data
 signal2 = fread(fid,bytes_to_read,'int8')'; % read another 1 millisecond chunk of data
