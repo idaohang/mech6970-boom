@@ -5,9 +5,9 @@
 % @author Robert Cofield
 % 
 tic
-clear all; clc; close all
+clear all; clc; 
 acq = load('part2a_narrow_ack.mat');
-akos_track = load('../akos/trackingResults');
+akos_track = load('akos_trackingResults');
 
 filename = ['..' filesep 'data' filesep 'GPS_Data_NordNav1e.sim'];
 fileid = fopen(filename);
@@ -74,6 +74,8 @@ settings.numberOfChannels = acq.nsv;
 
 
 %% Plot IP
+
+close all
 
 for k = 1:acq.nsv
 figure;
