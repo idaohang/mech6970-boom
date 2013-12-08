@@ -1,8 +1,7 @@
-
 %% MECH 6970 Lab4 Part 1, b)
 % Andrew Collins
 % 
-% This assumes you downloaded the data file into ../data/
+% Assumes Data file is in same folder, check name
 % 
 % NOTE !!! :
 % The bit-level operations and array sizing for this 1ms analysis should not be
@@ -46,6 +45,9 @@ signal2 = fread(fid,bytes_to_read,'int8')'; % read another 1 millisecond chunk o
 fclose(fid); % close file when done
 
 N = length(signal1);
+noise1=6*randn(1,N); 
+noise2=12*randn(1,N); 
+signal1=signal1+noise1+noise2; 
 T = 0:Ts:Ts*(N-1); % time from start corresponding to each epoch
 upsample = N/1023; 
 fprintf('Upsampling Ratio: %f\n',upsample)
@@ -112,3 +114,4 @@ saveas(fh, 'part1b.fig');
 %% End matters
 % try matlabpool close; catch e, disp(e); end
 toc
+

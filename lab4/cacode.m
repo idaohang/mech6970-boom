@@ -122,12 +122,12 @@ end
 %upsample to desired rate
 if fs~=1
     
-    h = waitbar(0,'Generating CA code') ;
+    
 
 	%fractional upsampling with zero order hold
 	index=0;
 	for cnt = 1/fs:1/fs:L*time_ms %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        waitbar(cnt/(L*time_ms),h);
+       
 
 		index=index+1;
 		if ceil(cnt) > L*time_ms   %traps a floating point error in index
@@ -136,6 +136,6 @@ if fs~=1
 			gfs(index)=g(ceil(cnt));
 		end
     end 
-    close(h)
+    
 	g=gfs;
 end
