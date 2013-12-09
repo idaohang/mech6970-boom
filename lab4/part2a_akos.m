@@ -7,7 +7,6 @@
 tic
 clear all; clc; 
 acq = load('part2a_narrow_ack.mat');
-akos_track = load('akos_trackingResults');
 
 filename = ['..' filesep 'data' filesep 'GPS_Data_NordNav1e.sim'];
 fileid = fopen(filename);
@@ -33,59 +32,36 @@ Tnav_frame = Tnav_chip*1500; % period of the entire nav msg frame
 Tnav_subframe = Tnav_frame/5; % period of a nav msg subframe
 
 stop_time = 1; % how long to go in sec
-n_code_per = stop_time/Tid; % how many data points we'll have in the end
 
-preamble = bin2dec('10001011');  
+% preamble = bin2dec('10001011');  
 
 %% Filter calculations
 % use Akos' filter
+% !!! WE NEED TO DO THIS OURSELVES !!!
 
-% % % DLL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+% % % DLL 
 dll_noise_bw = 2; % (Hz)
 dll_damping = 0.7; % ratio
-
-% [t1,t2] = calcLoopCoef(dll_noise_bw, dll_damping, 1.0);
-[t1,t2] = calcLoopCoef(akos_track.settings.dllNoiseBandwidth, akos_track.settings.dllDampingRatio, 1.0);
-
-% DLL filter 2nd order
+[t1,t2] = calcLoopCoef(dll_noise_bw, dll_damping, 1.0);
 dll_filt = struct(...
   'tau1', t1, ...
   'tau2', t2 ...
   );
 
-% % % PLL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+% % % PLL 
 pll_noise_bw = 25; % Hz
 pll_damping = 0.7; % ratio
-
-% [t1,t2] = calcLoopCoef(pll_noise_bw, pll_damping, 0.25);
-[t1,t2] = calcLoopCoef(akos_track.settings.pllNoiseBandwidth, akos_track.settings.pllDampingRatio, 0.25);
-
-% PLL filter 2nd Order
+[t1,t2] = calcLoopCoef(pll_noise_bw, pll_damping, 0.25);
 pll_filt = struct(...
   'tau1', t1, ...
   'tau2', t2 ...
   );
 
 
-%% Tracking with Akos' Algorithm
+%% Tracking Loop
 
-% for ch = 1:acq.nsv
-%   channel(ch).PRN = acq.svs(ch);
-%   channel(ch).acquiredFreq = acq.fdopp(ch) + fIF;
-%   channel(ch).codePhase = round( 1023*fs/fCA - acq.tau_samples(ch));
-%   channel(ch).status = 'T';
-% end
-% 
-% settings_akos = akos_track.settings;
-% settings_akos.msToProcess = n_code_per;
-% settings_akos.numberOfChannels = acq.nsv;
-% 
-% [trackingResults_akos,trackingChannel_akos] = tracking(fileid, channel, settings_akos);
-
-
-%% Tracking with Our Algorithm
+n_code_per = stop_time/Tid; % how many data points we'll have in the end
+if rem(n_code_per,1), error('Stop Time Needs to be multiple of 0.001'); end
 
 % needed data
 facq = acq.fdopp+fIF;
@@ -116,8 +92,7 @@ for ch = 1:acq.nsv
   
   fseek(fileid, codePhase0(ch)-1 , 'bof'); % return data file to code phase offset
   
-%   prn = genprn(acq.svs(ch),1023,[-1 1]);
-  prn = generateCAcode(acq.svs(ch));
+  prn = genprn(acq.svs(ch),1023,[-1 1]);
   prn = [ prn(1023) prn prn(1) ]; % make it possible to do early and late
   
   % % initial states
@@ -284,7 +259,7 @@ end
 
 
 
-%% Plot IP
+%% Plot IP and Data Bits
 
 close all
 
@@ -317,7 +292,6 @@ for k = 1:2
   saveas(fh,['part2a_data_bits_prn_' num2str(acq.svs(k)) '.fig']);
   
 end
-
 
 
 
