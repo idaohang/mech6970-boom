@@ -9,7 +9,7 @@
 %   - in particular, the calculation of the upsample rate needs to be redone.
 % 
 clear all; close all; clc;
-fprintf('Part I b)\n')
+fprintf('Part I c)\n')
 tic 
 % try matlabpool 3; catch e, disp(e); end
 
