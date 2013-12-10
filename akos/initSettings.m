@@ -55,7 +55,7 @@ settings.skipNumberOfBytes     = 0;
 % This is a "default" name of the data file (signal record) to be used in 
 % the post-processing mode 
 settings.fileName           = ... 
-   '../data/GPS_Data_NordNav1e.sim'; 
+   '../data/final_proj_data/run_north.bin'; 
 % Data type used to store one sample 
 settings.dataType           = 'int8'; 
  

@@ -179,11 +179,13 @@ for ch = 1:acq.nsv
     
     % % Find PLL Error & update carrier NCO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     carrErr = atan(QP/IP) / (2*pi);
+    % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     % update carrier NCO with filter
     % !!! This is where we implement filters of other orders !!!!!!!!!!!!!!!!!!!
     carrNCO = oldCarrNCO + ...
               ( pll_filt.tau2 / pll_filt.tau1 ) * (carrErr-oldCarrErr) + ...
               carrErr*(Tid/pll_filt.tau1);
+    % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     % save data for next timestep
     oldCarrNCO = carrNCO;
     oldCarrErr = carrErr;
@@ -198,11 +200,13 @@ for ch = 1:acq.nsv
     early = sqrt( IE^2 + QE^2 );
     late  = sqrt( IL^2 + QL^2 );
     codeErr = (early-late) / (early+late);
+    % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     % update code NCO with filter
     % !!! This is where we implement filters of other orders !!!!!!!!!!!!!!!!!!!
     codeNCO = oldCodeNCO + ...
               ( dll_filt.tau2 / dll_filt.tau1 ) * (codeErr-oldCodeErr) + ...
               codeErr*(Tid/dll_filt.tau1);
+    % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     % save data for next timestep
     oldCodeNCO = codeNCO;
     oldCodeErr = codeErr;
