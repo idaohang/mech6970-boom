@@ -17,6 +17,8 @@ data_dir = ['..' filesep 'data' filesep 'final_proj_data' filesep];
 
 stop_time = 120; % how long to calculate in sec
 
+c = 299792458; % speed of light (m/s)
+
 
 %% load data
 
@@ -25,6 +27,7 @@ nordnav_fid = fopen([data_dir 'run_' run '.sim'], 'r');
 
 
 %% Get SV Geometry Data
+% Calculate pos, vel for all SVs for which we have ephemeris on the novatel
 
 % % Get Ephemeris data
 % use the Novatel and find it for each GPS time epoch
@@ -33,14 +36,54 @@ nsv_have_ephem = length(svs_have_ephem);
 
 % will store ephemeris as it came from the Novatel
 ephem_novatel = zeros(30,nsv_have_ephem);
-% will store ephemeris in the format needed for the function `calc_sv_pos`
-ephem_gavlab = zeros(21,nsv_have_ephem);
+% % will store ephemeris in the format needed for the function `calc_sv_pos`
+% ephem_gavlab = zeros(21,nsv_have_ephem);
+
+% get data from Novatel
+data_count = 1;
+for k = 1:length(gNovatel.zPsrL1)
+  % didn't log novatel raw data as fast as I thought.. oops
+  if isempty(gNovatel.zPsrL1{k}), continue; end
+  % calculate the transit time using Novatel's PSRs
+  for ch = 1:32
+    transit_time(data_count,ch) = gNovatel.zPsrL1{k}(ch+1) / c;
+  end
+  % get range of GPS times for which to calculate the SV Positions
+  svpos_gpstimes(data_count) = gNovatel.zPsrL1{k}(34)/1000;
+  data_count = data_count+1;
+end
+clear data_count k
+  
+% sv positions at those GPS times
+%   - rows are each time, cols are each sv
+svpos = cell(length(svpos_gpstimes), nsv_have_ephem); 
+svvel = svpos;
+% SV clock corrections, dimension correspond to `svpos`
+svclkcorr = zeros(size(svpos));
+
 
 for ch = 1:nsv_have_ephem
+  
   eph_ = getfield(gNovatel, ['zEphem' num2str(svs_have_ephem(ch))]);
   ephem_novatel(1:length(eph_{end}),ch) = eph_{end};
+  %   ephem_gavlab(:,ch) = ephem_novatel2gavlab(ephem_novatel(:,ch));
+  
+  for t = 1:length(svpos_gpstimes)
+    [ svpos{t,ch}, svvel{t,ch}, svclkcorr(t,ch) ] = ...
+      calc_sv_pos_and_vel( ephem_novatel(:,ch), svpos_gpstimes(t), transit_time(t,ch) );
+  end
+  
 end
 clear eph_
+
+% userpos0_lla = [];
+userpos0_ecef = wgslla2xyz( gNovatel.zLat(1), gNovatel.zLong(1), gNovatel.zHeight(1) );
+
+% Plot positions
+for k = 1:nsv_have_ephem
+  prnstr{k} = num2str(svs_have_ephem(k));
+end
+plot_svpos(svpos,userpos0_ecef,prnstr);
 
 
 %% Do Acquisition
@@ -52,7 +95,8 @@ clear eph_
 
 %% Do tracking with Akos' version to get IP
 
-trackRes = akos_tracking(nordnav_fid, acq, stop_time);
+% acq = [];
+% trackRes = akos_tracking(nordnav_fid, acq, stop_time);
 
 
 %% Do time syncing
