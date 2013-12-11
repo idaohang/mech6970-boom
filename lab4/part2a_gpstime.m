@@ -78,10 +78,10 @@ n_subframes = n_subframes(1);
 TOW_bits = cell(size(TLM_starts));
 crsr = cell(size(TLM_starts));
 TLM_parity = zeros(size(TLM_starts));
-TOW = zeros(size(TLM_starts));
+TOW = NaN(n_code_per,acq.nsv);
 HOW_parity_chk = zeros(size(TLM_starts));
 TLM_parity_chk = zeros(size(TLM_starts));
-
+TOW_empty=zeros(size(TLM_starts));
 % iterate over each SV
 for ch = 1:acq.nsv
   if ~ch_status(ch), continue; end 
@@ -97,23 +97,46 @@ for ch = 1:acq.nsv
     TOW_bits{n,ch} = sign(trackRes(ch).IP(crsr{n,ch}));
     TOW_bits{n,ch} = xor( TLM_parity(n,ch)>0 , TOW_bits{n,ch}>0 ) == 0;
     % this is the GPS TOW at transmit from the GPS. corresponding to TLM_starts
-    TOW(n,ch) = (bin2dec(num2str(TOW_bits{n,ch}))-1)*6;
-    
+    TOW(TLM_starts(n,ch),ch) = (bin2dec(num2str(TOW_bits{n,ch}))-1)*6;
+    TOW_empty(n,ch)=(bin2dec(num2str(TOW_bits{n,ch}))-1)*6;
+    fprintf('Time of week: %20.10f days\n',((bin2dec(num2str(TOW_bits{n,ch}))-1)*6)./(24*3600));
   end  
 end
 
 
+% Yes I understand how terrible this is, just don't worry about it.
+slopes=(TOW_empty(:,end)-TOW_empty(:,1))./(TLM_starts(:,end)-TLM_starts(:,1));
+intercepts=zeros(size(slopes));
+for ch=1:acq.nsv-1
+    intercepts(ch)=TOW(TLM_starts(1,ch),ch)-slopes(ch)*(TLM_starts(1,ch));
+end
+
+for ch=1:acq.nsv-1
+    for j=1:size(TOW,1) %TLM_starts(2,ch)-1
+        TOW(j,ch)=slopes(ch)*(j)+intercepts(ch);
+    end
+end
+TOW(isnan(TOW))=0;
+
+% for ch=1:acq.nsv-1
+% figure; plot(TOW(TLM_starts(1,ch):TLM_starts(2,ch)));
+% end
+
+%Now TOW should be a num_samples x num_svs matrix of time data interpolated
+%from the data message. 
+
+
 %% Plot IP and Data Bits
 
-close all
+%close all
 
 for k = 1
   
   fh = figure;
 %     subplot(4,1,1:2)
-      plot(trackRes(k).IP); hold on
+      plot(TOW(:,k)./1000,trackRes(k).IP); hold on
       for kk = 1:n_subframes
-        plot([TLM_starts(kk,k) TLM_starts(kk,k)],[-5000 5000],'r','LineWidth',4)
+        %plot([TLM_starts(kk,k) TLM_starts(kk,k)],[-5000 5000],'r','LineWidth',4)
       end
       grid on
       xlabel('Time (ms)');
