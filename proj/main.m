@@ -76,7 +76,6 @@ for ch = 1:nsv_have_ephem
 end
 clear eph_
 
-% userpos0_lla = [];
 userpos0_ecef = wgslla2xyz( gNovatel.zLat(1), gNovatel.zLong(1), gNovatel.zHeight(1) );
 
 % Plot positions
