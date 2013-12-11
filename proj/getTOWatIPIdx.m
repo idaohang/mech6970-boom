@@ -1,4 +1,6 @@
-function [TLM_starts, TOW] getTOWatIPIdx(trackRes, acq, n_code_per)
+function [TLM_starts, TOW, ch_status] = getTOWatIPIdx(trackRes, acq, n_code_per)
+% 
+% 
 % 
 % INPUTS:
 %   trackRes: structure created in part2a_tracking.m
@@ -9,11 +11,21 @@ function [TLM_starts, TOW] getTOWatIPIdx(trackRes, acq, n_code_per)
 % OUTPUTS:
 %   TLM_starts: index within the IP at which each TLM word begins
 %   TOW: GPS time at the satellite corresponding to the IP indices in TLM_starts
+%   ch_status: whether TOW was calculated for each satellite
+
+
+% %% get data length and check
 % 
+% n_code_per = length(trackRes(1).IP):
+% for k = 1:length(trackRes)
+%   if length(trackRes(k).IP) ~= n_code_per
+%     error('Nonequal IP lengths');
+%   end
+% end
 
-
-
-fprintf('Decoding Data Bits with Thresholding\n')
+%% check channel status
+% by making sure data bit transitions occur in multiples of 20 ms
+% This may be unsound?
 
 data = zeros(acq.nsv,n_code_per);
 data_IP_thold = 500;
@@ -61,7 +73,7 @@ end
 
 %% Get the index of the first subframe by finding preambles
 
-fprintf('Finding preambles from IP data (Akos)\n')
+% fprintf('Finding preambles from IP data (Akos)\n')
 
 TLM_starts = [];
 search_start = 0;
@@ -72,6 +84,7 @@ end
 
 n_subframes = size(TLM_starts);
 n_subframes = n_subframes(1);
+
 
 %% Get the Z-Counts
 
@@ -103,5 +116,3 @@ for ch = 1:acq.nsv
 end
 
 
-
-end
