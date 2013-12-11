@@ -6,7 +6,13 @@
 % Right now it's best use is to exclude SV 20, leaving only 4 SV's
 
 clear all; close all; clc
-load part2a_tracking
+
+part2a = load('part2a_tracking.mat');
+
+trackRes = part2a.trackRes;
+acq = part2a.acq;
+n_code_per = part2a.n_code_per; % number of milliseconds
+
 fprintf('Decoding Data Bits with Thresholding\n')
 
 data = zeros(acq.nsv,n_code_per);
@@ -90,7 +96,7 @@ for ch = 1:acq.nsv
     end
     TOW_bits{n,ch} = sign(trackRes(ch).IP(crsr{n,ch}));
     TOW_bits{n,ch} = xor( TLM_parity(n,ch)>0 , TOW_bits{n,ch}>0 ) == 0;
-    % this is the GPS TOW corresponding to TLM_starts
+    % this is the GPS TOW at transmit from the GPS. corresponding to TLM_starts
     TOW(n,ch) = (bin2dec(num2str(TOW_bits{n,ch}))-1)*6;
     
   end  
