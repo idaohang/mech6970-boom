@@ -40,7 +40,7 @@ function settings = initSettings()
 %% Processing settings ==================================================== 
 % Number of milliseconds to be processed used 36000 + any transients (see 
 % below - in Nav parameters) to ensure nav subframes are provided 
-settings.msToProcess        = 60000;        %[ms] 
+settings.msToProcess        = 1000;        %[ms] 
  
 % Number of channels to be used for signal processing 
 settings.numberOfChannels   = 5; 
@@ -49,13 +49,14 @@ settings.numberOfChannels   = 5;
 % processing at any point in the data record (e.g. for long records). fseek 
 % function is used to move the file read point, therefore advance is byte 
 % based only.  
-settings.skipNumberOfBytes     = 10000; 
+settings.skipNumberOfBytes     = 0; 
  
 %% Raw signal file name and other parameter =============================== 
 % This is a "default" name of the data file (signal record) to be used in 
 % the post-processing mode 
 settings.fileName           = ... 
-  '../data/final_proj_data/run_south.sim'; 
+  '../data/final_proj_data/lashley_nordnav_data.sim';
+%   '../data/final_proj_data/run_south.sim'; 
 %     '../data/GPS_Data_NordNav1e.sim';
 %   '../data/final_proj_data/run1_2min.sim';
 % Data type used to store one sample 
