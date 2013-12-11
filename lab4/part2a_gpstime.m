@@ -15,6 +15,10 @@ data_trans_idx = cell(acq.nsv,1);
 nav_msg = cell(acq.nsv,1);
 ch_status = ones(acq.nsv,1);
 
+word_len = 30;
+subframe_len = 1500/5;
+data_len = length(trackRes(1).IP);
+
 for ch = 1:acq.nsv
   
   % thresholding
@@ -48,197 +52,89 @@ for ch = 1:acq.nsv
 end
 
 
+
+%% Get the index of the first subframe by finding preambles
+
+fprintf('Finding preambles from IP data (Akos)\n')
+
+TLM_starts = [];
+search_start = 0;
+while search_start+6000 < data_len
+  TLM_starts(end+1,:) = findPreambles_(trackRes, acq, ch_status, search_start);
+  search_start = search_start + 6000;
+end
+
+n_subframes = size(TLM_starts);
+n_subframes = n_subframes(1);
+
+%% Get the Z-Counts
+
+TOW = zeros(size(TLM_starts));
+trunc = cell(size(TLM_starts));
+crsr = cell(size(TLM_starts));
+
+% iterate over each SV
+for ch = 1:acq.nsv
+  if ~ch_status(ch), continue; end 
+  
+  for n = 1:n_subframes
+    trunc{n,ch} = zeros(1,17);
+    crsr{n,ch} = zeros(1,17);
+    for k = 0:16
+      crsr{n,ch}(k+1) = TLM_starts(n,ch) + (word_len)*20 + k*20 + 1;
+      trunc{n,ch}(k+1) = trackRes(ch).IP(crsr{n,ch}(k+1)) > 0;
+    end
+    TOW(n,ch) = bi2de(trunc{n,ch});
+  end  
+end
+
+
 %% Plot IP and Data Bits
 
 close all
 
-for k = 1:2
+for k = 1
   
   fh = figure;
-    subplot(4,1,1:2)
-      plot(trackRes(k).IP);
+%     subplot(4,1,1:2)
+      plot(trackRes(k).IP); hold on
+      for kk = 1:n_subframes
+        plot([TLM_starts(kk,k) TLM_starts(kk,k)],[-5000 5000],'r','LineWidth',4)
+      end
       grid on
       xlabel('Time (ms)');
       ylabel('IP');
       title(['In-phase Prompt for PRN' num2str(acq.svs(k))])
-    subplot(4,1,3)
-      plot(data(k,:),'LineWidth',4)
-      grid on; hold on
-      for kk = 1:length(data_trans_idx{k,1})
-        idx = data_trans_idx{k,1}(kk);
-        plot([idx idx],[-.5 1.5],'r')
-      end
-      title('Thresholded Data Bits')
-      xlabel('Time (ms)')
-      ylim([-1 2])
-    subplot(4,1,4)
-      stairs(nav_msg{k,1})
-      ylim([-1 2])
-      xlabel('Data Chip #')
-      title('Decoded Data Message (0/1)')
-      grid on
+      
+%     subplot(4,1,3)
+%       plot(data(k,:),'LineWidth',4)
+%       grid on; hold on
+%       for kk = 1:length(data_trans_idx{k,1})
+%         idx = data_trans_idx{k,1}(kk);
+%         plot([idx idx],[-.5 1.5],'r')
+%       end
+%       title('Thresholded Data Bits')
+%       xlabel('Time (ms)')
+%       ylim([-1 2])
+%     subplot(4,1,4)
+%       stairs(nav_msg{k,1})
+%       ylim([-1 2])
+%       xlabel('Data Chip #')
+%       title('Decoded Data Message (0/1)')
+%       grid on
 
-  saveas(fh,['part2a_data_bits_prn_' num2str(acq.svs(k)) '.fig']);
+%   saveas(fh,['part2a_data_bits_prn_' num2str(acq.svs(k)) '.fig']);
   
 end
 
-%% Get the index of the first subframe by finding preambles
-fprintf('Finding preambles from IP data (Akos)\n')
-
-% Preamble search can be delayed to a later point in the tracking results 
-% to avoid noise due to tracking loop transients  
-searchStartOffset = 0; 
- 
-%--- Initialize the firstSubFrame array ----------------------------------- 
-firstSubFrame = zeros(1, acq.nsv); 
- 
-%--- Generate the preamble pattern ---------------------------------------- 
-preamble_bits = [1 -1 -1 -1 1 -1 1 1]; 
- 
-% "Upsample" the preamble - make 20 vales per one bit. The preamble must be 
-% found with precision of a sample. 
-preamble_ms = kron(preamble_bits, ones(1, 20)); 
- 
-%--- Make a list of channels excluding not tracking channels -------------- 
-activeChnList = find(ch_status);
- 
-%=== For all tracking channels ... 
-for channelNr = activeChnList'
- 
-% Correlate tracking output with preamble ================================ 
-    % Read output from tracking. It contains the navigation bits. The start 
-    % of record is skiped here to avoid tracking loop transients. 
-    %bits = trackResults(channelNr).I_P(1 + searchStartOffset : end); 
-    bits = trackRes(channelNr).IP(1+searchStartOffset:end);
- 
-    % Now threshold the output and convert it to -1 and +1  
-    bits(bits > 0)  =  1; 
-    bits(bits <= 0) = -1; 
- 
-    % Correlate tracking output with the preamble 
-    tlmXcorrResult = xcorr(bits, preamble_ms); 
- 
-% Find all starting points off all preamble like patterns ================ 
-    clear index 
-    clear index2 
- 
-    xcorrLength = (length(tlmXcorrResult) +  1) /2; 
- 
-    %--- Find at what index/ms the preambles start ------------------------ 
-    index = find(... 
-        abs(tlmXcorrResult(xcorrLength : xcorrLength * 2 - 1)) > 153)' + ... 
-        searchStartOffset; 
- 
-% Analyze detected preamble like patterns ================================ 
-    for i = 1:size(index) % For each occurrence 
- 
-        %--- Find distances in time between this occurrence and the rest of 
-        %preambles like patterns. If the distance is 6000 milliseconds (one 
-        %subframe), the do further verifications by validating the parities 
-        %of two GPS words 
-         
-        index2 = index - index(i); 
- 
-        if (~isempty(find(index2 == 6000))) 
- 
-            %=== Re-read bit vales for preamble verification ============== 
-            % Preamble occurrence is verified by checking the parity of 
-            % the first two words in the subframe. Now it is assumed that 
-            % bit boundaries a known. Therefore the bit values over 20ms are 
-            % combined to increase receiver performance for noisy signals. 
-            % in Total 62 bits mast be read : 
-            % 2 bits from previous subframe are needed for parity checking; 
-            % 60 bits for the first two 30bit words (TLM and HOW words). 
-            % The index is pointing at the start of TLM word. 
-            bits = trackRes(channelNr).IP(index(i)-40 : ... 
-                                               index(i) + 20 * 60 -1)'; 
-
-            %--- Combine the 20 values of each bit ------------------------ 
-            bits = reshape(bits, 20, (size(bits, 1) / 20)); 
-            bits = sum(bits); 
-
-            % Now threshold and make it -1 and +1  
-            bits(bits > 0)  = 1; 
-            bits(bits <= 0) = -1; 
-
-            %--- Check the parity of the TLM and HOW words ---------------- 
-            if (navPartyChk(bits(1:32)) ~= 0) && ... 
-               (navPartyChk(bits(31:62)) ~= 0) 
-                % Parity was OK. Record the preamble start position. Skip 
-                % the rest of preamble pattern checking for this channel 
-                % and process next channel.  
-
-                firstSubFrame(channelNr) = index(i); 
-                break;     
-            end % if parity is OK ... 
-
-        end % if (~isempty(find(index2 == 6000))) 
-    end % for i = 1:size(index) 
- 
-    % Exclude channel from the active channel list if no valid preamble was 
-    % detected 
-    if firstSubFrame(channelNr) == 0 
-         
-        % Exclude channel from further processing. It does not contain any 
-        % valid preamble and therefore nothing more can be done for it. 
-        activeChnList = setdiff(activeChnList, channelNr); 
-         
-        disp(['Could not find valid preambles in channel ', ... 
-                                                  num2str(channelNr),'!']); 
-    end 
-     
-end % for channelNr = activeChnList 
 
 
-%% Decode Ephemerides
-% 
-fprintf('Decoding Ephemeris (Akos) \n')
- 
-for channelNr = activeChnList'
- 
-  %=== Convert tracking output to navigation bits ======================= 
-
-  %--- Copy 5 sub-frames long record from tracking output --------------- 
-  navBitsSamples = trackRes(channelNr).IP(firstSubFrame(channelNr) - 20 : ... 
-                             firstSubFrame(channelNr) + (1500 * 20) -1)'; 
-
-  %--- Group every 20 vales of bits into columns ------------------------ 
-  navBitsSamples = reshape(navBitsSamples, ... 
-                           20, (size(navBitsSamples, 1) / 20)); 
-
-  %--- Sum all samples in the bits to get the best estimate ------------- 
-  navBits = sum(navBitsSamples); 
-
-  %--- Now threshold and make 1 and 0 ----------------------------------- 
-  % The expression (navBits > 0) returns an array with elements set to 1 
-  % if the condition is met and set to 0 if it is not met. 
-  navBits = (navBits > 0); 
-
-  %--- Convert from decimal to binary ----------------------------------- 
-  % The function ephemeris expects input in binary form. In Matlab it is 
-  % a string array containing only "0" and "1" characters. 
-  navBitsBin = dec2bin(navBits); 
-
-  %=== Decode ephemerides and TOW of the first sub-frame ================ 
-  [eph(acq.svs(channelNr)), TOW] = ... 
-                          ephemeris(navBitsBin(2:1501)', navBitsBin(1)); 
-
-  %--- Exclude satellite if it does not have the necessary nav data ----- 
-  if (isempty(eph(acq.svs(channelNr)).IODC) || ... 
-    isempty(eph(acq.svs(channelNr)).IODE_sf2) || ... 
-    isempty(eph(acq.svs(channelNr)).IODE_sf3)) 
-
-    %--- Exclude channel from the list (from further processing) ------ 
-    activeChnList = setdiff(activeChnList, channelNr); 
-  end     
-end 
-
-
-%% Save which GPS times correspond 
 
 
 
 %% End Matters
 
+fprintf('saving data to `part2a_gpstime.mat`\n')
 save part2a_gpstime
+
 
