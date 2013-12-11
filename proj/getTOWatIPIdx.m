@@ -1,4 +1,4 @@
-function [TLM_starts, TOW, ch_status] = getTOWatIPIdx(trackRes, acq, n_code_per)
+function [TLM_starts, TOWsv, ch_status] = getTOWatIPIdx(trackRes, acq, n_code_per)
 % 
 % 
 % 
@@ -10,7 +10,8 @@ function [TLM_starts, TOW, ch_status] = getTOWatIPIdx(trackRes, acq, n_code_per)
 % 
 % OUTPUTS:
 %   TLM_starts: index within the IP at which each TLM word begins
-%   TOW: GPS time at the satellite corresponding to the IP indices in TLM_starts
+%   TOW: GPS time at the satellite; data interpolated from the data message. 
+%     num_samples x num_svs 
 %   ch_status: whether TOW was calculated for each satellite
 
 
@@ -73,7 +74,7 @@ end
 
 %% Get the index of the first subframe by finding preambles
 
-% fprintf('Finding preambles from IP data (Akos)\n')
+fprintf('Finding preambles from IP data (Akos)\n')
 
 TLM_starts = [];
 search_start = 0;
@@ -85,16 +86,15 @@ end
 n_subframes = size(TLM_starts);
 n_subframes = n_subframes(1);
 
-
 %% Get the Z-Counts
 
 TOW_bits = cell(size(TLM_starts));
 crsr = cell(size(TLM_starts));
 TLM_parity = zeros(size(TLM_starts));
-TOW = zeros(size(TLM_starts));
+TOWsv = NaN(n_code_per,acq.nsv);
 HOW_parity_chk = zeros(size(TLM_starts));
 TLM_parity_chk = zeros(size(TLM_starts));
-
+TOW_empty=zeros(size(TLM_starts));
 % iterate over each SV
 for ch = 1:acq.nsv
   if ~ch_status(ch), continue; end 
@@ -110,9 +110,30 @@ for ch = 1:acq.nsv
     TOW_bits{n,ch} = sign(trackRes(ch).IP(crsr{n,ch}));
     TOW_bits{n,ch} = xor( TLM_parity(n,ch)>0 , TOW_bits{n,ch}>0 ) == 0;
     % this is the GPS TOW at transmit from the GPS. corresponding to TLM_starts
-    TOW(n,ch) = (bin2dec(num2str(TOW_bits{n,ch}))-1)*6;
-    
+    TOWsv(TLM_starts(n,ch),ch) = (bin2dec(num2str(TOW_bits{n,ch}))-1)*6;
+    TOW_empty(n,ch)=(bin2dec(num2str(TOW_bits{n,ch}))-1)*6;
+    fprintf('Time of week: %20.10f days\n',((bin2dec(num2str(TOW_bits{n,ch}))-1)*6)./(24*3600));
   end  
 end
 
 
+% Yes I understand how terrible this is, just don't worry about it.
+slopes=(TOW_empty(:,end)-TOW_empty(:,1))./(TLM_starts(:,end)-TLM_starts(:,1));
+intercepts=zeros(size(slopes));
+for ch=1:acq.nsv-1
+    intercepts(ch)=TOWsv(TLM_starts(1,ch),ch)-slopes(ch)*(TLM_starts(1,ch));
+end
+
+for ch=1:acq.nsv-1
+    for j=1:size(TOWsv,1) %TLM_starts(2,ch)-1
+        TOWsv(j,ch)=slopes(ch)*(j)+intercepts(ch);
+    end
+end
+TOWsv(isnan(TOWsv))=0;
+
+% for ch=1:acq.nsv-1
+% figure; plot(TOW(TLM_starts(1,ch):TLM_starts(2,ch)));
+% end
+
+%Now TOW should be a num_samples x num_svs matrix of time data interpolated
+%from the data message. 
