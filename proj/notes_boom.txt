@@ -1,0 +1,18 @@
+Robert
+  - get the fucking TOW from data bits.
+  - 
+
+
+Grant 
+  - design shitty filter that loses tracking under nominal accel
+
+
+Will
+  
+
+Undergrad Ace
+  - Powerpoint!!!!
+
+
+- Use ephemeris from NovAtel
+  - get satellite position, velocity, need it over time

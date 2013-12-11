@@ -69,22 +69,30 @@ n_subframes = n_subframes(1);
 
 %% Get the Z-Counts
 
-TOW = zeros(size(TLM_starts));
-trunc = cell(size(TLM_starts));
+TOW_bits = cell(size(TLM_starts));
 crsr = cell(size(TLM_starts));
+TLM_parity = zeros(size(TLM_starts));
+TOW = zeros(size(TLM_starts));
+HOW_parity_chk = zeros(size(TLM_starts));
+TLM_parity_chk = zeros(size(TLM_starts));
 
 % iterate over each SV
 for ch = 1:acq.nsv
   if ~ch_status(ch), continue; end 
-  
   for n = 1:n_subframes
-    trunc{n,ch} = zeros(1,17);
-    crsr{n,ch} = zeros(1,17);
+    
+    % get the actual bits
+    TOW_bits{n,ch} = zeros(1,17);
+    crsr{n,ch} = zeros(1,17);    
+    TLM_parity(n,ch) = sign( trackRes(ch).IP( TLM_starts(n,ch) + 29*20 + 1 ) );
     for k = 0:16
       crsr{n,ch}(k+1) = TLM_starts(n,ch) + (word_len)*20 + k*20 + 1;
-      trunc{n,ch}(k+1) = trackRes(ch).IP(crsr{n,ch}(k+1)) > 0;
     end
-    TOW(n,ch) = bi2de(trunc{n,ch});
+    TOW_bits{n,ch} = sign(trackRes(ch).IP(crsr{n,ch}));
+    TOW_bits{n,ch} = xor( TLM_parity(n,ch)>0 , TOW_bits{n,ch}>0 ) == 0;
+    % this is the GPS TOW corresponding to TLM_starts
+    TOW(n,ch) = (bin2dec(num2str(TOW_bits{n,ch}))-1)*6;
+    
   end  
 end
 
