@@ -105,7 +105,7 @@ end
 
 
 % Yes I understand how terrible this is, just don't worry about it.
-slopes=(TOW_empty(:,end)-TOW_empty(:,1))./(TLM_starts(:,end)-TLM_starts(:,1));
+slopes=(TOW_empty(end,:)-TOW_empty(1,:))./(TLM_starts(end,:)-TLM_starts(1,:));
 intercepts=zeros(size(slopes));
 for ch=1:acq.nsv-1
     intercepts(ch)=TOW(TLM_starts(1,ch),ch)-slopes(ch)*(TLM_starts(1,ch));
@@ -118,9 +118,9 @@ for ch=1:acq.nsv-1
 end
 TOW(isnan(TOW))=0;
 
-% for ch=1:acq.nsv-1
-% figure; plot(TOW(TLM_starts(1,ch):TLM_starts(2,ch)));
-% end
+for ch=1:acq.nsv-1
+figure; plot(TOW(TLM_starts(1,ch):TLM_starts(2,ch)));
+end
 
 %Now TOW should be a num_samples x num_svs matrix of time data interpolated
 %from the data message. 
