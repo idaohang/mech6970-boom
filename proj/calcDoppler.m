@@ -2,7 +2,7 @@ function dop=calcDoppler(user_v, sat_v, dir_v)
 %user velocity vector, satelltie velocity vector, direction vector (user to
 %satellite).  All in same reference frame.
 
-c=3e8;
+c=299792458;
 
 dir_v=dir_v./norm(dir_v);
 v_rel=user_v-sat_v;
