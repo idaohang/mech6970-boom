@@ -118,11 +118,12 @@ end
 
 
 % Yes I understand how terrible this is, just don't worry about it.
-slopes=(TOW_empty(:,end)-TOW_empty(:,1))./(TLM_starts(:,end)-TLM_starts(:,1));
+slopes=(TOW_empty(end,:)-TOW_empty(1,:))./(TLM_starts(end,:)-TLM_starts(1,:));
 intercepts=zeros(size(slopes));
 for ch=1:acq.nsv-1
     intercepts(ch)=TOWsv(TLM_starts(1,ch),ch)-slopes(ch)*(TLM_starts(1,ch));
 end
+
 
 for ch=1:acq.nsv-1
     for j=1:size(TOWsv,1) %TLM_starts(2,ch)-1
