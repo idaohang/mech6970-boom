@@ -108,6 +108,9 @@ save workspace_after_akos_track
 clear all; close all; clc
 load workspace_after_akos_track
 
+% add dummy sv
+trackRes_akos(5) = trackRes_akos(4);
+
 gpsseconds_week = 60*60*24*7;
 
 % number of milliseconds of data (CA code periods)
@@ -169,8 +172,8 @@ for k = 1:4
   XBow_accY(:,k)  = spline(gXbow440.gps_time/1000, gXbow440.zAccelY, TOW(:,k));
 end
 
+save workspace_after_time_sync
 
-%% Our Tracking comparison
 
 
 
