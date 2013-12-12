@@ -1,4 +1,4 @@
-function [TLM_starts, TOWsv, ch_status] = getTOWatIPIdx(trackRes, acq, n_code_per)
+function [TLM_starts, TOWsv, TOW_empty, ch_status] = getTOWatIPIdx(trackRes, acq, n_code_per)
 % 
 % 
 % 
@@ -103,12 +103,12 @@ for ch = 1:acq.nsv
     % get the actual bits
     TOW_bits{n,ch} = zeros(1,17);
     crsr{n,ch} = zeros(1,17);    
-    TLM_parity(n,ch) = sign( trackRes(ch).IP( TLM_starts(n,ch) + 29*20 + 1 ) );
+    TLM_parity(n,ch) = sign( trackRes(ch).IP( TLM_starts(n,ch) + 29*20 + 10 ) );
     for k = 0:16
-      crsr{n,ch}(k+1) = TLM_starts(n,ch) + (word_len)*20 + k*20 + 1;
+      crsr{n,ch}(k+1) = TLM_starts(n,ch) + (word_len)*20 + k*20 + 10;
     end
     TOW_bits{n,ch} = sign(trackRes(ch).IP(crsr{n,ch}));
-    TOW_bits{n,ch} = xor( TLM_parity(n,ch)>0 , TOW_bits{n,ch}>0 ) == 0;
+    TOW_bits{n,ch} = xor( TLM_parity(n,ch)>0 , TOW_bits{n,ch}>0 );% == 0;
     % this is the GPS TOW at transmit from the GPS. corresponding to TLM_starts
     TOWsv(TLM_starts(n,ch),ch) = (bin2dec(num2str(TOW_bits{n,ch}))-1)*6;
     TOW_empty(n,ch)=(bin2dec(num2str(TOW_bits{n,ch}))-1)*6;

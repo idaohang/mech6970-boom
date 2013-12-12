@@ -10,12 +10,12 @@ tic
 run = 'north';
 
 % filter_order = 1;
-filter_order = 2;
+% filter_order = 2;
 % filter_order = 3;
 
 data_dir = ['..' filesep 'data' filesep 'final_proj_data' filesep];
 
-stop_time = 120; % how long to calculate in sec
+stop_time = 119; % how long to calculate in sec
 
 c = 299792458; % speed of light (m/s)
 
@@ -49,7 +49,7 @@ for k = 1:length(gNovatel.zPsrL1)
     transit_time(data_count,ch) = gNovatel.zPsrL1{k}(ch+1) / c;
   end
   % get range of GPS times for which to calculate the SV Positions
-  svpos_gpstimes(data_count) = gNovatel.zPsrL1{k}(34)/1000;
+  svpos_gpstimes(data_count) = gNovatel.zPsrL1{k}(34)/100;
   data_count = data_count+1;
 end
 clear data_count k
@@ -83,44 +83,91 @@ for k = 1:nsv_have_ephem
   prnstr{k} = num2str(svs_have_ephem(k));
 end
 plot_svpos(svpos,userpos0_ecef,prnstr);
+clear k prnstr
 
 
 %% Do Acquisition
 % This needs to output a struct that contains the same data as `acq` in the file
 % `../lab4/part2a_narrow_ack.m`
 
-
+acq_ugh = load('run_north_high_res_acq.mat');
+acq = acq_ugh.run_north_high_res_acq;
+clear acq_ugh
+  
 
 
 %% Do tracking with Akos' version to get IP
 
-% acq = [];
-% trackRes = akos_tracking(nordnav_fid, acq, stop_time);
+trackRes_akos = akos_tracking(nordnav_fid, acq, stop_time);
+save('run_north_high_res_trackRes_akos.mat','trackRes_akos');
+save workspace_after_akos_track
 
 
 %% Do time syncing
 
-% % number of milliseconds of data (CA code periods)
-% n_code_per = length(trackRes(1).IP);
-% for k = 1:length(trackRes)
-%   if length(trackRes(k).IP) ~= n_code_per
-%     error('Nonequal IP lengths');
-%   end
-% end
-% 
-% [TLM_starts, TOW, ch_status] = getTOWatIPIdx(trackRes, acq, n_code_per);
+clear all; close all; clc
+load workspace_after_akos_track
+
+gpsseconds_week = 60*60*24*7;
+
+% number of milliseconds of data (CA code periods)
+n_code_per = length(trackRes_akos(1).IP);
+for k = 1:length(trackRes_akos)
+  if length(trackRes_akos(k).IP) ~= n_code_per
+    error('Nonequal IP lengths');
+  end
+end
+
+[TLM_starts, TOW, TOW_empty, ch_status] = getTOWatIPIdx(trackRes_akos, acq, n_code_per);
 
 % % Find SV positions at each GPS time reported.
 % Each SV should have the same set of GPS times, just at different indices
 % within the IP.
+% get data from Novatel
 
 % Calculate TOF at each GPS time 
+transit_time_nordnav = zeros(length(TOW),4);
+% calculate the transit time using Novatel's PSRs
+for ch = 1:4
+  transit_time_nordnav(:,ch) = interp1(svpos_gpstimes, transit_time(:,acq.svs(ch)), TOW(:,ch), 'cubic');
+end
 
-% subtract TOF from each known
+% get range of GPS times for which to calculate the SV Positions
 
-% interpolate to find GPS time at each IP data epoch
+  
+% sv positions at those GPS times
+%   - rows are each time, cols are each sv
+svpos_nordnav = cell(length(TOW), 4); 
+svvel_nordnav = svpos_nordnav;
+% SV clock corrections, dimension correspond to `svpos`
+svclkcorr_nordnav = zeros(size(svpos_nordnav));
+
+
+for ch = 1:4
+    
+  for t = 1:length(TOW)
+    [ svpos_nordnav{t,ch}, svvel_nordnav{t,ch}, svclkcorr_nordnav(t,ch) ] = ...
+      calc_sv_pos_and_vel( ephem_novatel(:,ch), TOW(t,ch), transit_time_nordnav(t,ch) );
+  end
+  
+end
+clear eph_
+% % Plot positions
+% for k = 1:4
+%   prnstr{k} = num2str(acq.svs(k));
+% end
+% plot_svpos(svpos_nordnav,userpos0_ecef,prnstr);
+
+
+% % subtract TOF from each known
+% TOW = TOW + transit_time_nordnav - svclkcorr_nordnav;
 
 % interpolate Xbow values at its GPS times to find Xbow values at IP GPS times
+XBow_accY=zeros(size(TOW));
+
+for k = 1:4
+  XBow_accY(:,k)  = spline(gXbow440.gps_time/1000, gXbow440.zAccelY, TOW(:,k));
+end
 
 
 %% Our Tracking comparison
@@ -130,7 +177,7 @@ plot_svpos(svpos,userpos0_ecef,prnstr);
 %% End Matters
 
 % save data with the filter order and the run name in the file
-save(['output_run_' run '_filter_' num2str(filter_order) '.mat']);
+% save(['output_run_' run '_filter_' num2str(filter_order) '.mat']);
 toc
 
 

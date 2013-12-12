@@ -75,7 +75,7 @@ repmat(trackRes,1,acq.nsv);
 hwb = waitbar(0,'Tracking Initialized'); % waitbar
 
 % Loop over each satellite
-for ch = 1:acq.nsv
+for ch = 1:4
   
   fseek(fileid, codePhase0(ch)-1 , 'bof'); % return data file to code phase offset
   
